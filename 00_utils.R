@@ -9,6 +9,32 @@ pacman::p_load(
 
 
 # data wrangling ----------------------------------------------------------
+# function to detect duplicates after merging
+identicals_df <- function(x) {
+  identicals_col <- function(x) {
+    all(lapply(x, identical, x[[1]]))
+  }
+  
+  identicals_group <- function(x) {
+    x %>% apply(2, identicals_col)
+  }
+  
+  groupVARS <- groups(x) %>% as.character()
+  
+  x %>%
+    dplyr::filter(n() > 1) %>%
+    group_split() %>%
+    map_dfr( ~ {
+      res <- identicals_group(.x)
+      ids <-
+        # dplyr::select(.x, one_of(groupVARS)) %>% dplyr::distinct() %>% paste0(collapse = " | ")
+        dplyr::select(.x, one_of(groupVARS)) %>% dplyr::distinct() %>% 
+        dplyr::mutate(
+          col_overlap = paste0(names(res)[res==F], collapse = ', ')
+        )
+    })
+}
+
 # Defining outliers
 outliers <- function(x, times = 1.5){ # 1.5 is default
   # Inter quartile range

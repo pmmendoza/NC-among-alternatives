@@ -40,14 +40,10 @@ source("00_interplot-3-way.R")
 
 
 # ├ pre-sets for visualisations ------------------------------------------------------
-# Choose the font for your output (Plots and Tables)
-# Define font for plots
+# define font for plots
 FONT <- "EB Garamond" # for paper word paper version
 
-# FIXME: remove the following
-# FONT <- "CMU Serif" # for paper overleaf
-# FONT <- "Helvetica" # for slides
-
+# set standardised theme
 mingara <- theme_minimal() +
   theme(
     text = element_text(
@@ -62,7 +58,7 @@ mingara <- theme_minimal() +
 theme_set(mingara)
 update_geom_defaults("text", list(colour = "black", family = theme_get()$text$family))
 
-# create the necessary folder structure for this project
+# ├ create the necessary folder structure ------------------
 folders <- c("plots", "tables", glue("plots/{FONT}"))
 walk(folders, ~ {if (!dir.exists(.x)) {dir.create(.x)}})
 
@@ -83,17 +79,19 @@ mostrecentdate <- (list.files("data/") %[in~% "EPEES-file") %>%
   str_remove("_.*") %>%
   as.Date() %>%
   max()
+
+# Load the most recent EPEES set
 enx <- vroom(glue("data/{mostrecentdate}_EPEES-file.csv"))
 print(glue("The most recent file is from {mostrecentdate};"))
 
 
 # 2. rescaling ----------------------------------------------
 # For better fitting of models, all numeric covariates that do not require to
-# be interepreted meaningfully are standardised.
+# be interpreted meaningfully are standardised.
 
+# define variables that are numeric and don't need to be interpreted
 stdsvars <-
   names(select_if(tempdf, is.numeric)) %[out~%
-  # Variables that should not be changed
   c(
     "d_ptv",
     "p_incivility",
@@ -104,15 +102,12 @@ stdsvars <-
     "e_ENP"
   )
 
-# rescaling
+# rescale them
 tempdf_scale1 <-
   tempdf %>%
   select(-party_acro) %>%
   mutate_at(vars(all_of(stdsvars)), scale2) %>%
   mutate(
-    # d_ninterpos_perc_bi = ifelse(d_ninterpos_perc > 0, 1, 0) %>%
-    #   factor(levels = c(1, 0), labels = c("Better alternatives available", "No better alternatives")),
-    # d_ninterpos_perc_bi_num = ifelse(d_ninterpos_perc > 0, 1, 0),
     d_ninterpos_perc_bi_num =
       case_when(
         d_ninterpos_perc > 0 ~ 1,

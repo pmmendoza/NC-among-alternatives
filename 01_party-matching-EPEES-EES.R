@@ -53,10 +53,6 @@ if (!file.exists("data/EPEES_19_datapart.dta")) {
 # loading the EPEES_19 dataset
 enx <- haven::read_dta("data/EPEES_19_datapart.dta")
 
-# FIXME is this really an identical dataset?
-enx2 <- haven::read_dta("/Users/p.m.mendozauva.nl/Library/CloudStorage/OneDrive-UvA/07 Datasets/EPEES19/EP2019_data_parties_v2.dta")
-names(enx2) %[out% names(enx)
-
 # check if the EES datasets exist already
 if (!file.exists("data/ZA7581_v2-0-1.dta") | !file.exists("data/ZA7581_cp.csv")) {
   stop(paste0(

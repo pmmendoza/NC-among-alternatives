@@ -93,7 +93,7 @@ partyfext <- read_csv(glue("data/partyfacts-external-parties.csv"))
 iso2 <- read_csv("data/eu_cntry_iso2.csv")
 iso2dict <- setNames(iso2$Code, iso2$Country)
 
-# 3. Cleaning / Harmonising data -----------------------------------------------------------
+# 2. cleaning / harmonising data -----------------------------------------------------------
 # EES - party dataset:
 ees_parties <- parties %>%
   # change ids to character
@@ -147,6 +147,9 @@ enx <-
     epees_id_num = str_c(cntry_short, "_", str_remove(partycode, "party")),
   )
 
+
+
+
 # Act I - connect EES to EPEES via EES14 > partyfacts > CHES ----------------------------------------------------------------------
 # The aim of this code is to get an EES party id for every party in EPEES.
 # The EPEES dataset has a CHES party id which I can connect to EES14 party ids
@@ -192,6 +195,8 @@ link1 <-
 link1 <- link1 %>% filter(!ees14_id == 1620314)
 
 # Add the relevant columns to the EPEES dataset: ees14_id, partyfacts_id, px_country, px_name_english, px_name
+# TODO: check if this still works
+
 enx1 <-
   enx %>%
   left_join(link1) %>%
@@ -199,8 +204,14 @@ enx1 <-
     regionbe = case_when(
       px_name %in~% "Travali de Belgique" ~ "W",
       px_name %in~% "van de Arbeid" ~ "F",
-      T ~ NA_character_
-    )
+      T ~ "other"
+    ),
+    
+    # make country codes unique
+    cntry_short = case_when(
+      regionbe == "Flanders" ~ "BEF",
+      regionbe == "Wallonia" ~ "BEW",
+      T ~ cntry_short)
   )
 # 54 are still without matches in the enx data! [documentation]
 # duplicates detection
@@ -208,7 +219,7 @@ enx1 <-
 # enx1 %>% group_by(CHES_id, regionbe) %>% identicals_df()
 
 # also add these ids to the central linkage file
-link1 <- link1 %>%
+link2 <- link1 %>%
   left_join(
     enx %>% select(epees_id, epees_id_num, CHES_id)
   )
@@ -256,9 +267,9 @@ ees_parties2 <-
     epees_id_num = ifelse(!is.na(epees_id_num_new), epees_id_num_new, epees_id_num)
   ) %>%
   select(-epees_id_num_new)
+# 54 fewer NA
 
 is.na(ees_parties2$epees_id_num) %>% sum()
-# 54 fewer NA
 # 26 remain unmatched
 
 
@@ -304,25 +315,13 @@ link_full <-
   # re-arrange columns
   relocate(
     cntry_short,
-    regionbe = Region,
     epees_id, epees_id_num,
-    n_epees_id,
     EPEES_name, EPEES_acro,
     ees_party_id, ees14_id,
-    n_ees_id,
     EES_name, EES_name_orig
   ) %>%
   # calculate similartiy of party names
   mutate(
-    regionbe = ifelse(is.na(regionbe), "other", regionbe),
-
-    # make country codes unique
-    cntry_short = case_when(
-      regionbe == "Flanders" ~ "BEF",
-      regionbe == "Wallonia" ~ "BEW",
-      T ~ cntry_short
-    ),
-
     # create unique party_ids for ees
     p_uniqueid = paste0(cntry_short, "_party_", ees_party_id_num),
   )
@@ -336,7 +335,7 @@ link_full %>%
   identicals_df()
 
 
-# 3. save the matchfile ------------------------------------------------------
+# 3. save the matchfile and the harmonised files ------------------------------------------------------
 # All parties
 link_full %>%
   write_csv("data/00 2023-10-18_Linkage-all-parties.csv")
@@ -344,4 +343,14 @@ link_full %>%
 # Only matched
 link_full %>%
   filter(!is.na(ees_party_id), !is.na(epees_id_num)) %>%
-  write_csv("data/00 2023-19-18_Linkage-matched-parties.csv")
+  write_csv("data/00 2023-10-18_Linkage-matched-parties.csv")
+
+
+# ├ write the cleaned data sets back to disk ------------------------------------------------------
+write_csv(enx1 %>% select(-starts_with("px_")), file = "data/EPEES19-cleaned.csv")
+write_csv(ees, file = "data/EES-cleaned.csv")
+
+# check diffs between enx and enx1
+names(enx1) %[out% names(enx)
+enx1 %>% select(cntry_short) %>% table()
+

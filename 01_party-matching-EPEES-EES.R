@@ -143,7 +143,10 @@ enx <-
       cntry == "Ireland" ~ "IE",
       T ~ cntry_short
     ),
-
+    
+    # region indicator
+    region = region %>% sjlabelled::as_character(),
+    
     # CHES id
     CHES_id = as.character(CHESpid),
 

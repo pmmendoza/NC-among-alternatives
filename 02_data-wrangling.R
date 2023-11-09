@@ -1,33 +1,21 @@
 # Title: Study I
 # Context: [Hostile Campaigning Project]
 # Author: Philipp M.
-# Date: Mon Sep 06 19:55:32 2021
-# 0. Content ---------------------------------------------------------
+# 0. content ---------------------------------------------------------
 # 1. Loading Packages & Data
 # 2. Recoding
 # 3. Analyses
 # 
 # [R] for Robustness checks
 # [SC] for Sample Cuts
-# [T] for Table output
-# [G] for Graph output
-#
-# "FIXME", "TODO", "CHANGED", "IDEA", "HACK", "NOTE", "REVIEW", "BUG", "QUESTION", "COMBAK", "TEMP"
-# NOTE differences to the Nai 2022 paper
-# - expert judgements are adjusted with the ABSOLUTE, not the relative ideological
-#   distance between parties and experts.
-
-
-# 1. Loading Packages & Data -----------------------------------------
-## 1.1 Packages and functions ---------------------------------------------
+# 1. loading packages & data -----------------------------------------
+## 1.1 packages and functions ---------------------------------------------
 # loading / installing packages depending on whether it is already installed.
 pacman::p_load(
   tidyverse, 
   tidylog,
   inops,
   glue,
-  beepr, 
-  clipr,
   inops
   )
 
@@ -35,7 +23,7 @@ pacman::p_load(
 source("00_utils.R")
 
 
-## 1.2 Loading Data -------------------------------------------------------
+## 1.2 loading data -------------------------------------------------------
 # TODO change this comment!, double check that all steps have been done!
 # NOTE This code:
 # 1. Loads both datasets
@@ -75,8 +63,8 @@ ees_parties <- read_csv(file = "data/EES_parties-cleaned.csv")
 linkage <- read_csv("data/00 2023-11-01_Linkage-matched-parties.csv")
 
 
-# 2. Recoding -------------------------------------------------------------
-## 2.1 Matching potential -------------------------------------------------
+# 2. recoding -------------------------------------------------------------
+## 2.1 matching potential -------------------------------------------------
 #  2.1.1 Parties that I cannot match due to EES
 # temp <- enx %>%
 #   filter(is.na(ees_partycode)) %>%
@@ -122,31 +110,44 @@ write_csv(sc_noepees, "data/99 parties unmatched due to EPEES.csv")
 enx <- filter(enx, !is.na(ees_party_id))
 # dropping 12 parties
 
-## 2.2 recoding of relevant variables --------------------------------------------------------
-### 2.2.1 party-level --------------------------------------------------------
+## 2.2 party-level --------------------------------------------------------
+### 2.2.1 party ideology --------------------------------------------------------
 enx <- 
   enx %>% 
   mutate(
-    # negativity is the reversed tonality; values: [-10 most positive; +10 most negative]
-    p_negativity = -tone,
+    # create a nice party label
+    party_lab = glue("{party_acro} [{cntry_short}]"),
     
-    # incivility remains as is
+    # negativity is the reversed tonality; values: [0 = exclusively positive; 10 = exclusively negative]
+    p_negativity = (-tone+10)/2,
+    
+    # incivility remains as is [0 = most civil; 10 = most uncivil]
     p_incivility = uncivil,
     
     # for the ordering of labels in a visualisation
     p_harshness = ((p_negativity+10)/2 + p_incivility)/2, 
-
     
     # ideological position of parties
     # left-right position from wikipedia: [0 = far left;10 = far right]
     p_lrpos_wiki = p_position/13*10,
     
     # EU position from EPEES Expert Judgements
-    p_eupos = select(., euitegr, eufunct) %>% rowMeans(na.rm = T),
+    # 1) evaluating EU integration
+    # 2) evaluating functioning of EU
+    p_eupos = select(., euitegr, eufunct) %>% rowMeans(na.rm = T), # [0 = against EU; 10 = pro EU]
     
-    # [R] party ideological extremity
+    # [R] party ideological extremity [0; 5]
     p_eupos_extreme = abs(p_eupos-5),
     p_lrpos_extreme_wiki = abs(p_lrpos_wiki-5),
+    
+    # Incumbency status
+    p_incumbency = p_NatGov19,
+    
+    # number of respondents for this party
+    p_numresp = numresp,
+    
+    # vote share at last election
+    p_prcEP19 = p_prcEP19,
   )
 
 # Reliability of EU position scale
@@ -161,7 +162,7 @@ sc_p_eupos <- enx %>% filter(is.na(p_eupos)) %>% select(cntry_short, ees_party_i
 enx <-  enx %>% filter(!is.na(p_eupos))
 
 
-### 2.2.2 inter-party-level --------------------------------------------------------
+### 2.2.2 inter-party ideological distances --------------------------------------------------------
 # 1.) single-dimension
 dimensions <- c("p_lrpos_wiki", "p_eupos") # can be expanded
 
@@ -203,7 +204,7 @@ enx <- enx %>%
   )
 
 
-### 2.2.3 [R] Adjusted by expert ideology ---------------------------------------------
+### 2.2.3 [R] neg. and inciv. adjusted by expert ideology ---------------------------------------------
 # NOTE adjusted negativity
 # "inspired by a procedure described in Walter and Van der Eijk (2019). 
 # The adjusted measure is obtained, for each party, by: 
@@ -232,19 +233,7 @@ enx <-
   )
 
 
-## 2.2.1 average negativity of election ----------------------------------------------------
-enx <-
-  enx %>%
-  group_by(cntry_short) %>%
-  mutate(
-    e_negativity = mean(p_negativity, na.rm=T),
-    e_incivility = mean (p_incivility, na.rm=T),
-    e_adj_incivility = mean (p_resid_unciv, na.rm=T),
-    e_adj_negativity = mean (p_resid_neg, na.rm=T),
-  ) %>% ungroup
-
-
-## 2.4 negativity and incivility of next closest competitor -----------------------------------------------
+### 2.2.4 neg. and inciv. of next closest competitor -----------------------------------------------
 # negativity of all competitors as new columns
 enx <-
   enx %>% 
@@ -291,22 +280,48 @@ enx <-
   )
 
 
-## 2.3 Ideological Distance Individual-Party ----------------------------------------------------
-## 2.3.1 L-R position of respondent ----------------------------------------------------
-ees <- 
-  ees %>% 
+## 2.3 election-level ----------------------------------------------------
+enx <-
+  enx %>%
+  group_by(cntry_short) %>%
   mutate(
-    i_lrpos = ifelse(Q11>10, NA, Q11),
-    i_extremity_lr = abs(i_lrpos-5),
+    e_negativity = mean(p_negativity, na.rm=T),
+    e_incivility = mean (p_incivility, na.rm=T),
+    e_adj_incivility = mean (p_resid_unciv, na.rm=T),
+    e_adj_negativity = mean (p_resid_neg, na.rm=T),
+  ) %>% ungroup %>% 
+  mutate(
+    # Effective number of parties
+    e_ENP = ENP,
+    # Region in europe
+    e_region = region,
   )
 
 
-## 2.3.2 EU position of respondent ----------------------------------------------------
-# Elite EU position is currently composed of 
-# 1) evaluating EU integration
-# 2) evaluating functioning of EU
-# 3) considering referendum for EU Exit
+## 2.4 individual-level ----------------------------------------------------
+## 2.4.1 L-R position of respondent ----------------------------------------------------
+ees <- 
+  ees %>% 
+  mutate(
+    # resp identifier
+    i_unique = paste0(cntry_short, respid),
+    
+    # left-right position and extremity of voter 
+    i_lrpos = ifelse(Q11>10, NA, Q11),
+    i_extremity_lr = abs(i_lrpos-5),
+    
+    # control variables
+    i_pinterest = na_if(Q21, 99) %>% na_if(98) %>% sjlabelled::as_character(), # political interest
+    i_yrbrn = D4_1, # year born
+    i_edulvl = EDU %>% na_if(99) %>% na_if(97) %>% sjlabelled::as_character(),
+    i_gender = D3 %>% sjlabelled::as_character(),
+    
+    # [R] Following the election in the media
+    i_followelections = Q8 %>% as.numeric %>% replace(.>10, NA),
+  )
 
+
+## 2.4.2 EU position of respondent ----------------------------------------------------
 # For respondents I use
 # 1) evaluation of EU integration
 # 2) satisfaction with EU
@@ -347,15 +362,15 @@ ees <-
     i_extremity_eu = abs(i_eupos-5)
   )
 
-## 2.3.3 Perceived Ideol. Distances to parties --------------------------------------------------------
+
+## 2.4.3 perceived ideol. distances to parties --------------------------------------------------------
 ees <- ees %>% 
   mutate_at(vars(starts_with("q13")), ~replace(., which(.>10), NA)) %>% 
-  mutate(across(starts_with("q13_"), ~abs(. - i_lrpos), .names = "i_dist2party_{.col}"))
+  mutate(across(starts_with("q13_"), ~abs(. - i_lrpos), .names = "i_dist2party_{str_remove(.col, 'q13_')}"))
 
 
-## 2.3.4 Obj Ideol Distances to parties --------------------------------------------------------
-# TODO simplify this => may actually be reduced to only perceived distance!
-
+## 2.4.4 obj ideol distances to parties --------------------------------------------------------
+# TODO simplify!
 # 1. Merge all parties' positions back to EES
 ees <- enx %>% 
   select(
@@ -385,8 +400,7 @@ for (i in 1:length(dimensions)){
 
 # Combo Distance
 combo <- c("p_lrpos_wiki", "p_eupos")
-base <- combo[1] %>% str_extract("wiki") #|ees
-
+base <- combo[1] %>% str_extract("wiki")
 
 # 2.) two-dimensional
 # Average distance between individual and all parties across both dimensions
@@ -409,30 +423,17 @@ for (j in 1:9){
 }
 
 
-## 2.4. Control vars --------------------------------------------------------
-ees <- ees %>%
-  mutate(
-    i_pinterest = na_if(Q21, 99) %>% na_if(98) %>% sjlabelled::as_character(), # political interest
-    i_yrbrn = D4_1, # year born
-    i_edulvl = EDU %>% na_if(99) %>% na_if(97) %>% sjlabelled::as_character(),
-    i_gender = D3 %>% sjlabelled::as_character(),
-    
-    # [R] Following the election in the media
-    i_followelections = Q8 %>% as.numeric %>% replace(.>10, NA),
-  ) 
-
-
-### 2.4.5 [SC] N of experts --------------------------------------------------
+## 2.5 [SC] N of experts --------------------------------------------------
 # kick parties with less than 3 coders EPEES
-enx <-
-  enx %>% 
-  filter(numresp>=3) #%>% 
-
-enx$epees_id[enx$numresp<3]
+enx$epees_id[enx$p_numresp<3]
 # =>  we lose Luxembourg entirely
 # 6 rows are kicked out
 
-# 3. [SC] Stacking data --------------------------------------------------------
+enx <-
+  enx %>% 
+  filter(p_numresp>=3) #%>% 
+
+## 2.6 [SC] stacking data --------------------------------------------------------
 # ALl control variables
 cntrls <- c("i_gender",
             "i_yrbrn", 
@@ -442,32 +443,24 @@ cntrls <- c("i_gender",
             "i_lrpos",
             "i_extremity_eu",
             "i_extremity_lr",
+            "p_incumbency",
             "p_lrpos_wiki",
             "p_eupos",
             "p_eupos_extreme",
             "p_neg_close_ecombo",
             "p_inciv_close_ecombo",
-            # "p_neg_close_combo",
-            # "p_inciv_close_combo",
-            # "p_neg_adj_close_combo",
-            # "p_inciv_adj_close_combo",
             "p_neg_adj_close_ecombo",
             "p_inciv_adj_close_ecombo",
+            "p_numresp",
             "p_lrpos_extreme_wiki",
             "e_negativity",
             "e_incivility",
             "e_adj_incivility",
-            "e_adj_negativity"
+            "e_adj_negativity",
+            "e_region"
             )
 
 # Connecting EPEES to EES
-enx <- 
-  enx %>% 
-  rename(
-    p_incumbency = p_NatGov19,
-    p_numresp = numresp,
-  )
-
 temp <-
   ees %>% 
   select(
@@ -478,9 +471,9 @@ temp <-
     matches("i_dist2party_"),
     all_of(cntrls %[out~% "p_|e_"), # all individual-level controls
     # TODO remove these?
-    all_of(paste0("i_combo_dist_wiki_", 1:9)),
-    all_of(paste0("i_combo_dist_ewiki_", 1:9)),
-    all_of(paste0("i_lrpos_dist_wiki_", 1:9)),
+    # all_of(paste0("i_combo_dist_wiki_", 1:9)),
+    # all_of(paste0("i_combo_dist_ewiki_", 1:9)),
+    # all_of(paste0("i_lrpos_dist_wiki_", 1:9)),
     # all_of(paste0("i_lrpos_dist_ees_", 1:9)), 
     # all_of(paste0("i_eupos_dist_", 1:9)),
          ) %>% 
@@ -495,14 +488,10 @@ temp <-
   filter(ptv <= 10)  %>%
   
   # Remove parties not covered in EPEES
-  # FIXME enx has not p_uniqueid!
   filter(p_uniqueid %in% enx$p_uniqueid) %>% 
   
-  # Connect to negex
-  inner_join(
-    enx
-             )
-
+  # Connect to EPEES
+  inner_join(enx)
 
 temp %>% 
     summarise(
@@ -511,6 +500,7 @@ temp %>%
       respondents = n_distinct(i_unique),
       dyads = n()
     ) %>% print()
+
 ## VERIFICATION TESTS
 # GET A SENSE OF WHICH ROWS WE'VE JUST LOST => nothing in addition to those 
 
@@ -520,46 +510,24 @@ temp %>%
 #   filter(p_uniqueid %out% temp$p_uniqueid)
 
 
-# # Inspect Duplicates
-# temp %>% 
-#   select(cntry, ees_partycode, ees_partyname, enx_party) %>% 
-#   distinct() %>% 
-#   group_by(ees_partycode, cntry) %>% 
-#   filter(n()>1) %>% 
-#   arrange(cntry, ees_partycode)
-
-## 3.1. Dyadic measures --------
-### 3.1.1 L-R distance 2 sponsor--------
-# We already have the ideological distances to most parties; now we need to specify the sponsor
+## 2.7 dyadic measures --------
+### 2.7.1 L-R distance 2 sponsor--------
 temp <-
   temp %>% 
-    rowwise %>% 
+  rowwise %>% 
   mutate(
-    # L-R distance to sponsor
-    d_lrdist_wiki = abs(i_lrpos - p_lrpos_wiki),
-    # d_lrdist_ees = abs(i_lrpos - p_lrpos_ees),
-
     # two-dim distance to sponsor
     d_combodist_ewiki = sqrt(
         (i_lrpos - p_lrpos_wiki)^2 +
         (i_eupos - p_eupos)^2
       ),
-    d_combodist_wiki = mean(
-      c(
-        abs(i_lrpos - p_lrpos_wiki),
-        abs(i_eupos - p_eupos)
-        )#, na.rm =T
-      )
-    # d_combodist_ees = abs(i_lrpos - p_lrpos_ees),
+    
+    # PTV for sponsor
+    d_ptv = ptv,
   )
 
-# temp %>%
-#   select(d_combodist_wiki, d_combodista_wiki, i_lrpos, p_lrpos_wiki, i_eupos, p_eupos) %>% View
-# temp %>%
-#   select(d_combodist_wiki, d_combodista_wiki) %>% 
-#   cor(use = "complete.obs")
 
-### 3.1.1 perceived L-R distance 2 sponsor--------
+### 2.7.2 perceived L-R distance 2 sponsor --------
 temp$d_percdist <- 
   temp %>% 
   mutate(
@@ -569,12 +537,8 @@ temp$d_percdist <-
   apply(1, function(x){x[x["ees_indicator"]]})
 
 
-# COMBAK: Ideological position of closest competitor (for a deprecated IV) can be implemented lateron if necessary.
-
-
-### 3.1.2 Number of interposing parties --------
+### 2.7.3 number of interposing parties --------
 # How many parties is an individual closer to than to the sponsor of negativity
-
 # Create numeric ees partycode
 temp <- 
   temp %>% 
@@ -588,9 +552,9 @@ for (i in 1:9){
     temp %>% 
     mutate(
       # "i_lrpos_dist_ees_{i}" := ifelse(ees_partycode_num == i, NA, .data[[glue("i_lrpos_dist_ees_{i}")]]),
-      "i_lrpos_dist_wiki_{i}" := ifelse(ees_partycode_num == i, NA, .data[[glue("i_lrpos_dist_wiki_{i}")]]),
-      "i_combo_dist_wiki_{i}" := ifelse(ees_partycode_num == i, NA, .data[[glue("i_combo_dist_wiki_{i}")]]),
-      "i_combo_dist_ewiki_{i}" := ifelse(ees_partycode_num == i, NA, .data[[glue("i_combo_dist_ewiki_{i}")]]),
+      # "i_lrpos_dist_wiki_{i}" := ifelse(ees_partycode_num == i, NA, .data[[glue("i_lrpos_dist_wiki_{i}")]]),
+      # "i_combo_dist_wiki_{i}" := ifelse(ees_partycode_num == i, NA, .data[[glue("i_combo_dist_wiki_{i}")]]),
+      # "i_combo_dist_ewiki_{i}" := ifelse(ees_partycode_num == i, NA, .data[[glue("i_combo_dist_ewiki_{i}")]]),
       "i_dist2party_{i}" := ifelse(ees_partycode_num == i, NA, .data[[glue("i_dist2party_{i}")]]),
     )
 }
@@ -613,141 +577,103 @@ for (i in 1:9){
 #   apply(1, function(x){sum(x[1:9]<=x["d_lrdist_ees"], na.rm = T)})
 
 # based on parties' wiki LR position
-temp$d_ninterpos_wiki <- 
-  temp %>% 
-  select(one_of(paste0("i_lrpos_dist_wiki_",1:9)), d_lrdist_wiki) %>%
-  apply(1, function(x){sum(x[1:9]<x["d_lrdist_wiki"], na.rm = T)})
-temp$d_ninterpos_eq_wiki <- 
-  temp %>% 
-  select(one_of(paste0("i_lrpos_dist_wiki_",1:9)), d_lrdist_wiki) %>%
-  apply(1, function(x){sum(x[1:9]<=x["d_lrdist_wiki"], na.rm = T)})
+# temp$d_ninterpos_wiki <- 
+#   temp %>% 
+#   select(one_of(paste0("i_lrpos_dist_wiki_",1:9)), d_lrdist_wiki) %>%
+#   apply(1, function(x){sum(x[1:9]<x["d_lrdist_wiki"], na.rm = T)})
+# temp$d_ninterpos_eq_wiki <- 
+#   temp %>% 
+#   select(one_of(paste0("i_lrpos_dist_wiki_",1:9)), d_lrdist_wiki) %>%
+#   apply(1, function(x){sum(x[1:9]<=x["d_lrdist_wiki"], na.rm = T)})
 
 # based on eu and wiki based lr position
-temp$d_ninterpos_combo <- 
-  temp %>% 
-  select(one_of(paste0("i_combo_dist_wiki_",1:9)), d_combodist_wiki) %>%
-  apply(1, function(x){sum(x[1:9]<x["d_combodist_wiki"], na.rm = T)})
-temp$d_ninterpos_eq_combo <- 
-  temp %>% 
-  select(one_of(paste0("i_combo_dist_wiki_",1:9)), d_combodist_wiki) %>%
-  apply(1, function(x){sum(x[1:9]<=x["d_combodist_wiki"], na.rm = T)})
+# temp$d_ninterpos_combo <- 
+#   temp %>% 
+#   select(one_of(paste0("i_combo_dist_wiki_",1:9)), d_combodist_wiki) %>%
+#   apply(1, function(x){sum(x[1:9]<x["d_combodist_wiki"], na.rm = T)})
+# temp$d_ninterpos_eq_combo <- 
+#   temp %>% 
+#   select(one_of(paste0("i_combo_dist_wiki_",1:9)), d_combodist_wiki) %>%
+#   apply(1, function(x){sum(x[1:9]<=x["d_combodist_wiki"], na.rm = T)})
 
 # based on eu and wiki based ideol position euclidean
-temp$d_ninterpos_ecombo <- 
-  temp %>% 
-  select(one_of(paste0("i_combo_dist_ewiki_",1:9)), d_combodist_ewiki) %>%
-  apply(1, function(x){sum(x[1:9]<x["d_combodist_ewiki"], na.rm = T)})
-temp$d_ninterpos_eq_ecombo <- 
-  temp %>% 
-  select(one_of(paste0("i_combo_dist_ewiki_",1:9)), d_combodist_ewiki) %>%
-  apply(1, function(x){sum(x[1:9]<=x["d_combodist_ewiki"], na.rm = T)})
+# temp$d_ninterpos_ecombo <- 
+#   temp %>% 
+#   select(one_of(paste0("i_combo_dist_ewiki_",1:9)), d_combodist_ewiki) %>%
+#   apply(1, function(x){sum(x[1:9]<x["d_combodist_ewiki"], na.rm = T)})
+# temp$d_ninterpos_eq_ecombo <- 
+#   temp %>% 
+#   select(one_of(paste0("i_combo_dist_ewiki_",1:9)), d_combodist_ewiki) %>%
+#   apply(1, function(x){sum(x[1:9]<=x["d_combodist_ewiki"], na.rm = T)})
 
 
 
 # based on perceived distances
-temp$d_ninterpos_perc <- 
-  temp %>% 
-  select(one_of(paste0("i_dist2party_",1:9)), d_percdist) %>%
-  apply(1, function(x){sum(x[1:9]<x["d_percdist"], na.rm = T)})
-temp$d_ninterpos_eq_perc <- 
-  temp %>% 
+# temp$d_ninterpos_perc <- 
+#   temp %>% 
+#   select(one_of(paste0("i_dist2party_",1:9)), d_percdist) %>%
+#   apply(1, function(x){sum(x[1:9]<x["d_percdist"], na.rm = T)})
+temp$d_ninterpos_perc <-
+  temp %>%
   select(one_of(paste0("i_dist2party_",1:9)), d_percdist) %>%
   apply(1, function(x){sum(x[1:9]<=x["d_percdist"], na.rm = T)})
 
-#wait did I select distance to the sponsor to zero na? 
-# => not necessary if it's *smaller than* 
-temp %>% select(contains("ninterpos")) %>% 
-  cor(use = "complete.obs")
+# turn into a binary variable
+temp <- temp %>% 
+  mutate(
+    d_ninterpos_perc_bi_num =
+      case_when(
+        d_ninterpos_perc > 0 ~ 1,
+        d_ninterpos_perc == 0 ~ 0,
+        T ~ NA_real_
+      ),
+    d_ninterpos_perc_bi =
+      case_when(
+        d_ninterpos_perc > 0 ~ "Better alternatives available",
+        d_ninterpos_perc == 0 ~ "No better alternatives",
+        T ~ NA_character_
+      ),
+  )
 
 
-# cntrls <- c(cntrls, "d_combodist_wiki")
-cntrls <- c(cntrls, "d_percdist", "d_combodist_wiki", "d_combodist_ewiki")
+# 3. last sample cuts --------------------------------------------------------
+cntrls <- c(cntrls, "d_combodist_ewiki") %>% sort()
 
-### 3.1.3 AVG dist. to interposing parties --------
-# temp$avg_dist_interpos <- temp %>%
-#   select(one_of(paste0("lrdist_",1:9)), i_lrdist) %>%
-#   apply(1, function(x){mean(x[1:9]<x["i_lrdist"], na.rm = T)})
-#   
-# Issue: is zero for no interposing parties
-
-# 4. last sample cuts --------------------------------------------------------
 # Analysis dataset
 tempdf <- 
   temp %>%
-  mutate(e_region = region %>% sjlabelled::as_character()) %>% 
-  # Select relevant variables for model
   select(
+    # Expert variables
+    starts_with("exp_"), 
+    
     # Control variables
     one_of(cntrls),
     # Nesting structure variables
     cntry_short, p_uniqueid, i_unique,
-    # TODO bring this one back
-    # ees_partyname_orig,
+    party_acro, party_lab,
+
     # Dependent Variable
-    d_ptv = ptv, 
-    # p_prcEP19,
+    d_ptv, 
+    p_prcEP19,
     
     # Independent Variables
     p_negativity, 
-    p_incivility, #negativity_difference_lr, uncivil_difference_lr,
-    # p_resid_harsh,
+    p_incivility, 
+    p_harshness,
+    ## adjusted measures
     p_resid_neg,
     p_resid_unciv,
     
     # Moderation Variables
-    e_ENP = ENP, 
-    # p_combo_wiki_mindist, #p_lrpos_ees_mindist, p_lrpos_wiki_mindist, 
-    p_combo_wiki_emindist, #p_lrpos_ees_mindist, p_lrpos_wiki_mindist, 
-    d_ninterpos_perc = d_ninterpos_eq_perc,
-    # d_ninterpos_combo,
-    # d_ninterpos_ecombo,
-    d_ninterpos_eq_combo,
-    d_ninterpos_eq_ecombo,
-    
-    #d_ninterpos_ees, d_ninterpos_wiki, 
-    
-    # Controls
-    ## party
-    # p_harsh_close_combo,
-    # p_harsh_adj_close_combo,
-    # p_neg_close_combo, #p_neg_close_lr_ees, p_neg_close_lr_wiki, #p_neg_close_eu, 
-    # p_inciv_close_combo, #p_inciv_close_lr_ees, p_inciv_close_lr_wiki, #p_inciv_close_eu, 
-    p_inciv_close_ecombo, #p_inciv_close_lr_ees, p_inciv_close_lr_wiki, #p_inciv_close_eu, 
-    p_neg_close_ecombo,
-    # p_harsh_close_ecombo,
-    
-    p_lrpos_wiki,
-    # p_lrpos_ees,
-    p_eupos,
-    
-    ## individual
-    i_lrpos,
-    i_extremity_lr,
-    
-    ## dyadic
-    # d_combodist_wiki, #control => in the controls vector
-    # d_lrdist_wiki,
-    # d_lrdist_ees,
-    # d_combodist_ees,
-    
-    ## robustness
-    i_followelections,
-    
-    # lrdist_rel_i,
-    # lrpos_next_closest, # why do I need this one?
-    # follownews,
-    # controls
-    
-    e_region,
-    p_incumbency, # Incumbency
-    p_numresp,
-    party_acro,
-    starts_with("exp_"), 
+    e_ENP, 
+    p_combo_wiki_emindist,
+    d_ninterpos_perc_bi,
+    d_ninterpos_perc_bi_num,
+    i_followelections, # robustness
     )
-  
 
 
-# 5. Saving analysis dataset -------------------------------------------------
+# 4. saving analysis dataset -------------------------------------------------
 vroom::vroom_write(tempdf, glue("data/{Sys.Date()}_Analysisfile.csv"))
 vroom::vroom_write(enx, glue("data/{Sys.Date()}_EPEES-file.csv"))
 

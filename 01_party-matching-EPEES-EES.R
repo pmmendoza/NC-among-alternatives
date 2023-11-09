@@ -28,6 +28,7 @@ pacman::p_load(
   inops,
   glue,
   stringdist,
+  # TODO remove these two
   beepr,
   clipr
 )
@@ -45,13 +46,14 @@ if (!dir.exists("data")) {
 # downloading the EPEES_19 dataset
 if (!file.exists("data/EPEES_19_datapart.dta")) {
   download.file(
+    # TODO adjust this to my own repo!
     url = "https://osf.io/download/bzm48/",
-    destfile = "data/EPEES_19_datapart.dta"
+    destfile = "data/EP2019_data_parties_v2.dta"
   )
 }
 
 # loading the EPEES_19 dataset
-enx <- haven::read_dta("data/EPEES_19_datapart.dta")
+enx <- haven::read_dta("data/EP2019_data_parties_v2.dta")
 
 # check if the EES datasets exist already
 if (!file.exists("data/ZA7581_v2-0-1.dta") | !file.exists("data/ZA7581_cp.csv")) {
@@ -69,7 +71,6 @@ ees <- haven::read_dta(glue("data/ZA7581_v2-0-1.dta"))
 
 # load the EES Parties dataset
 parties <- read_csv(glue("data/ZA7581_cp.csv"), local = locale(encoding = "CP1250"), name_repair = "universal")
-
 
 # download partyfacts data
 if (!file.exists("data/partyfacts-core-parties.csv")) {
@@ -106,6 +107,18 @@ ees_parties <- parties %>%
     ees_party_code_num = Unifed_party_code,
     ees_party_id = Q2_EES,
     ees_party_id_num = Unifed_party_code,
+  ) %>%
+  # correct some wrong codes in this dataset which emerged when comparing the provided dataset 
+  # with the codebook.
+  mutate(
+    # regionbe = Region %>% case_when(name_engl %in~% "Green"),
+    ees_party_id = case_when(
+      Party_name_questionnaire %in~% "TOP" ~ "1203530", # this one was missing!
+      Party_name_questionnaire %in~% "LSDP" ~ "1440320", # this one was mistakenly coded with the EES id of 1440620 which is of the TS-LKD party
+      name_engl %in~% "Lithuanian Social Democratic" ~ "1440320",
+      name_engl == "Social Democratic Labour Party" ~ "1752320", # this was 1752700, should be 1752320
+      T ~ ees_party_id
+    ),
   )
 
 # EPEES dataset:
@@ -218,33 +231,30 @@ link1 <-
 #    => we can drop the coalition from our linkage file.
 link1 <- link1 %>% filter(!ees14_id == 1620314)
 
-# Add the relevant columns to the EPEES dataset: ees14_id, partyfacts_id, px_country, px_name_english, px_name
+# If the ees14 id for a specific party is also in the ees19 dataset, then use
+# this id for the matching file
+link1 <- link1 %>%
+  mutate(
+    ees_party_id = ifelse(ees14_id %in% ees_parties$ees_party_id, ees14_id, NA)
+  )
+
+# Add the relevant columns to the EPEES dataset: ees_party_id, partyfacts_id, px_country, px_name_english, px_name
 enx1 <-
-  enx %>%
-  left_join(link1) %>%
+  # Matching by CHES_id!
+  link1 %>% 
+  select(CHES_id, ees_party_id, partyfacts_id, px_country, px_name_english, px_name) %>% 
+  right_join(., enx) %>%
   mutate(
     regionbe = case_when(
-      px_name %in~% "Arbeid" ~ "Flanders",
-      # px_name %in~% "Vlaams" ~ "Flanders",
+      px_name %in~% "Arbeid" & cntry == "Belgium" ~ "Flanders",
       px_name %in~% "Travail de Belgique" ~ "Wallonia",
-      # px_name %in~% "Humaniste" ~ "Wallonia",
-      # px_name %in~% "Socialiste" ~ "Wallonia",
-      # px_name %in~% "formateur" ~ "Wallonia",
-      # px_name %in~% "Partij" ~ "Flanders",
-      # partyname == "Ecolo / Groen" ~ "both",
       T ~ NA_character_
-    ),
-    # make country codes unique
-    # TODO - move this to after I've added the cols back to EES!
-    # cntry_short = case_when(
-    #   regionbe == "Flanders" ~ "BEF",
-    #   regionbe == "Wallonia" ~ "BEW",
-    #   T ~ cntry_short)
+    )
   )
+# (0) 54 138 192 (only in x, only in y, matched, total)
 # 54 are still without matches in the enx data! [documentation]
-# duplicates detection
-# only EPEES parties without CHES ids remain as duplicates at this point.
 # enx1 %>% group_by(CHES_id, regionbe) %>% identicals_df()
+# only 29 EPEES parties without CHES ids remain as duplicates at this point.
 
 # also add the EPEES ids to the central linkage file
 link2 <- link1 %>%
@@ -252,32 +262,14 @@ link2 <- link1 %>%
     enx1 %>% select(epees_id, epees_id_num, CHES_id, cntry_short, px_name#, regionbe
                     )
   )
+# 0 54 138 138
 
-# Add the linkage data to the EES data set
+# Add the linkage data (especially the epees_id_num) to the EES data set
 ees_parties1 <-
   ees_parties %>%
-  # mistake in this dataset
-  mutate(
-    # regionbe = Region %>% case_when(name_engl %in~% "Green"),
-    ees_party_id = case_when(
-      Party_name_questionnaire %in~% "TOP" ~ "1203530",
-      Party_name_questionnaire %in~% "LSDP" ~ "1440320",
-      name_engl %in~% "Lithuanian Social Democratic" ~ "1440320",
-      name_engl == "Social Democratic Labour Party" ~ "1752320",
-      # name_engl == "Lithuanian Social Democratic Party" ~ "1752320",
-      T ~ ees_party_id
-    ),
-  ) %>%
-  left_join(link2 %>% rename(ees_party_id = ees14_id))
-# 128 parties are matched
+  left_join(link2 %>% select(ees_party_id, epees_id_num) %>% filter(!is.na(ees_party_id)))
 # 80 parties are left unmatched
-
-# If the ees14 id for a specific party is also in the ees19 dataset, then use
-# this id for the matching file
-link2 <- link2 %>%
-  mutate(
-    ees_party_id = ifelse(ees14_id %in% ees_parties1$ees_party_id, ees14_id, NA)
-  )
+# 128 parties are matched
 
 
 # Act II - manual matching ------------------------------------------------
@@ -285,83 +277,118 @@ link2 <- link2 %>%
 # parties in the EES voter study. Some parties remain unmatched.
 manual_matches <- read_csv("data/00_manual-matches-EPEESxEES.csv")
 
-# Move the manual matches back to EES!
-ees_parties2 <- 
-  manual_matches %>%
+# add manual matches to link
+link3 <- 
+  full_join(link2, 
+          manual_matches %>% 
+            mutate(ees_party_id = as.character(ees_party_id)) %>% 
+            rename(epees_id_num = epees_id_num_new)
+          )
+# 135 80 3 218
+
+# add link back to EES!
+ees_parties2 <-
+  link3 %>%
+  # only take those entries which appear in both datasets
   filter(!is.na(ees_party_id)) %>% 
-  filter(!is.na(epees_id_num_new)) %>% 
-  mutate(ees_party_id = as.character(ees_party_id)) %>% 
-  select(cntry_short, ees_party_id, epees_id_num_new, ees_party_name) %>%
-  right_join(ees_parties1) %>% 
+  filter(!is.na(epees_id_num)) %>% 
+  # select the relevant columns
+  select(cntry_short, ees_party_id, epees_id_num_new = epees_id_num, ees_party_name) %>%
+  # add the matches to the ees party dataset!
+  right_join(ees_parties1) %>%
+  # where the epees id was missing, add the newly added one
   mutate(
     epees_id_num = ifelse(!is.na(epees_id_num_new), epees_id_num_new, epees_id_num),
+    # introduce the cntry_short differentiation for Belgium!
     cntry_short = case_when(
       Region == "Flanders" ~ "BEF",
       Region == "Wallonia" ~ "BEW",
       T ~ cntry_short
-    )
+    ),
+    ees_partycode = ees_party_code_num %>% paste0("party_",.)
   ) %>% 
   select(-epees_id_num_new, -ees_party_name) %>% arrange(cntry_short)
 
-sum(is.na(ees_parties2$epees_id_num))
-# 26 remain unmatched
+# get the differentiation of belgium in here already
+link3 <- left_join(
+  link3,
+  ees_parties2 %>%
+    select(ees_party_id, cntry_short_be = cntry_short, ees_partycode) %>%
+    filter(!is.na(ees_party_id))
+) %>%
+  mutate(cntry_short_be = ifelse(is.na(cntry_short_be), cntry_short, cntry_short_be))
 
+sum(is.na(ees_parties2$epees_id_num))
+# 26 EES parties remain unmatched by an EPEES party
+# 12 (0) 206 218
+
+# bind back to EPEES
+enx2 <- link3 %>%
+  # only take those entries which appear in both datasets
+  filter(!is.na(ees_party_id)) %>%
+  filter(!is.na(epees_id_num)) %>%
+  select(cntry_short, cntry_short_be, ees_partycode,
+         epees_id_num, ees_party_id,
+         #ees_party_id_new = ees_party_id, 
+         ees_party_name) %>% 
+  right_join(enx1 %>% select(-ees_party_id)) %>% 
+  # (0)
+  # 12
+  # 184
+  # 196
+  # here the workers party got unnecessarily duplicated.
+  filter(!(regionbe == "Flanders" & ees_party_id == "1056335")|is.na(ees_party_id)) %>% 
+  filter(!(regionbe == "Wallonia" & ees_party_id == "1056325")|is.na(ees_party_id)) %>% 
+  relocate(cntry, cntry_short, epees_id_num, epees_id, regionbe, ees_party_id, partyname, partycountry_acro) %>% 
+  arrange(epees_id_num) %>% 
+  mutate(p_uniqueid = paste0(cntry_short, "_",ees_partycode))
 
 # ├ final linkage file ------------------------------------------------------
 link_full <-
   full_join(
-    enx1 %>%
-      filter(!ees14_id == "1620314" | is.na(ees14_id)) %>%
+    enx2 %>%
+      filter(!is.na(ees_party_id)) %>%
       select(
-        regionbe,
-        # cntry_short,
+        # regionbe,
+        cntry_short,
+        cntry_short_be,
         epees_id_num, epees_id,
-        ees14_id,
         epees_party = partyname, 
         epees_acro = party_acro,
         partyfacts_id,
-        CHES_id
+        CHES_id,
+        ees_party_id
       ),
     ees_parties2 %>%
       filter(!is.na(epees_id_num)) %>%
       select(
-        cntry_short,
+        cntry_short_be = cntry_short,
         regionbe=Region,
         ees_partyname_engl = name_engl,
         ees_partyname_orig = Party_name_questionnaire,
         ees_party_id,
-        ees_partycode = ees_party_id_num,
+        ees_partycode,
         epees_id_num,
+        ees_party_code_num
       )
   ) %>%
-  arrange(cntry_short, epees_id_num)
-
-# adjust a wrong duplication
-link_full <-
-  link_full %>%
-  # remove two mismatches
-  filter(
-    !((ees_partyname_orig %in~% "\\(PVDA/PTB\\)" & ees14_id == "1056335") |
-      (ees_partyname_orig %in~% "\\(PTB\\)" & ees14_id == "1056325"))
-  )
-
-# final edits
-link_full <-
-  link_full %>%
+  arrange(cntry_short, epees_id_num) %>%
   # re-arrange columns
   relocate(
     cntry_short,
+    cntry_short_be,
     epees_id, epees_id_num,
     epees_party, epees_acro,
-    ees_party_id, ees14_id,
+    ees_party_id,
     ees_partyname_engl,
     ees_partyname_orig
   ) %>%
   # calculate similartiy of party names
   mutate(
     # create unique party_ids for ees
-    p_uniqueid = paste0(cntry_short, "_party_", ees_party_id),
+    p_uniqueid = paste0(cntry_short, "_party_", ees_party_code_num),
   )
+# 182 perfect matches.
 
 
 # ├ final check for duplicates ------------------------------------------------------
@@ -385,8 +412,6 @@ link_full %>%
 
 # ├ write the cleaned data sets back to disk ------------------------------------------------------
 # ENX cannot have the new cntry_short because it doesn't differentiate parties enough in Belgium
-write_csv(enx1 %>% select(-starts_with("px_")), file = "data/EPEES19-cleaned.csv")
+write_csv(enx2 %>% select(-starts_with("px_")), file = "data/EPEES19-cleaned.csv")
+write_csv(ees_parties2, file = "data/EES_parties-cleaned.csv")
 write_csv(ees, file = "data/EES-cleaned.csv")
-
-
-

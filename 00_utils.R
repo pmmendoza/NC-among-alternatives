@@ -14,23 +14,26 @@ identicals_df <- function(x) {
   identicals_col <- function(x) {
     all(lapply(x, identical, x[[1]]))
   }
-  
+
   identicals_group <- function(x) {
     x %>% apply(2, identicals_col)
   }
-  
+
   groupVARS <- groups(x) %>% as.character()
-  
+
   x %>%
-    dplyr::filter(n() > 1) %>%
+    dplyr::mutate(ndups = n()) %>%
+    dplyr::filter(ndups > 1) %>%
     group_split() %>%
-    map_dfr( ~ {
+    map_dfr(~ {
       res <- identicals_group(.x)
       ids <-
         # dplyr::select(.x, one_of(groupVARS)) %>% dplyr::distinct() %>% paste0(collapse = " | ")
-        dplyr::select(.x, one_of(groupVARS)) %>% dplyr::distinct() %>% 
+        dplyr::select(.x, one_of(groupVARS), ndups) %>%
+        dplyr::distinct() %>%
         dplyr::mutate(
-          col_overlap = paste0(names(res)[res==F], collapse = ', ')
+          ndups = ndups,
+          col_overlap = paste0(names(res)[res == F], collapse = ", ")
         )
     })
 }

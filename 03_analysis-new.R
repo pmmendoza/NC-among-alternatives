@@ -716,6 +716,7 @@ plot_interplot_combo <- function(model1,
       shape = collab
     )
 }
+
 plot_interplot_combo <- compiler::cmpfun(plot_interplot_combo)
 
 

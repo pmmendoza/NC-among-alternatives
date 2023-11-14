@@ -22,37 +22,12 @@ pacman::p_load(
 # helper functions for this project
 source("00_utils.R")
 
-
 ## 1.2 loading data -------------------------------------------------------
-# TODO change this comment!, double check that all steps have been done!
-# NOTE This code:
-# 1. Loads both datasets
-# 2. Harmonises Country labels
-# 3. Ads the EES party identifiers and labels to the EPEES dataset
-#    (ees_partyname_engl, ees_partyname_orig, ees_partycode, ees_Q25_code, ees_Q7_code, ees_Q7_code_short)
-#    via a previously created linkage file
-# 4. Renames the EPEES partyname to enx_partyname
-# 5. Creates unique party ids (EPEES) and respondent ids (EES) 
-#    {COUNTRY-ABBREV}_{EES-PARTY-ID}
-#    {COUNTRY-ABBREV}_{EES-RESPONDENT-ID}
-# 6. Removes parties from EPEES that cannot be linked to the EES
-# source("02_pre-processing-data-cleaning.R")
-
-
 # EPEES_19 dataset
-# TODO ideally move any sjlabelled operations to the data prep. script; this should only be the newly created enx datafile
 enx <- read_csv("data/EPEES19-cleaned.csv")
-enx_lab <- haven::read_dta("data/EP2019_data_parties_v2.dta")
 
-# TEMP remove this
-# enx_lab <- haven::read_dta("data/EPEES_19_datapart.dta")
-# enx_lab2 <- haven::read_dta("data/EP2019_data_parties.dta")
-# # TODO explain this merge with the newly found data
-# enx <- full_join(
-#   enx %>% select(-c(numresp, uncivil, feelgood, fear, sd_tone, sd_uncivil, sd_feelgood, sd_fear)), 
-#   enx_lab2)
-# enx_previously <- read_delim("/Users/p.m.mendozauva.nl/Library/CloudStorage/OneDrive-UvA/00 Work/01 ASCoR PhD/01 Study I/Git first paper/data/2022-04-25_EPEES-file.csv", delim = "\t")
-# enx_old <- haven::read_dta("/Users/p.m.mendozauva.nl/Library/CloudStorage/OneDrive-UvA/07 Datasets/EPEES19/EP2019_data_parties_v2.dta") # ideally this is not needed bc. it's not available online
+# TODO ideally move any sjlabelled operations to the data prep. script; this should only be the newly created enx datafile
+# enx_lab <- haven::read_dta("data/EP2019_data_parties_v2.dta")
 
 # Cleaned EES dataset
 ees <- read_csv(file = "data/EES-cleaned.csv")
@@ -79,7 +54,7 @@ temp <-
   ees %>% 
   select(
     cntry_short, starts_with("Q10_")
-    ) %>% 
+    ) %>%
   mutate_at(vars(starts_with("Q10_")), ~replace(., which(.>10), NA)) %>% 
   pivot_longer(
     contains("Q10_"),
@@ -102,7 +77,7 @@ temp <-
 # 184 matched
 
 # CY_7 and SK_10 exist in the answers but not in the codebook
-sc_noepees <- left_join(temp, ees_parties) %>% select(cntry_short, ees_party_id, name_engl, epees_id_num)
+sc_noepees <- left_join(temp, ees_parties) %>% select(cntry_short, ees_party_id, ees_partyname_engl, epees_id_num)
 write_csv(sc_noepees, "data/99 parties unmatched due to EPEES.csv")
 
 
@@ -311,10 +286,10 @@ ees <-
     i_extremity_lr = abs(i_lrpos-5),
     
     # control variables
-    i_pinterest = na_if(Q21, 99) %>% na_if(98) %>% sjlabelled::as_character(), # political interest
     i_yrbrn = D4_1, # year born
-    i_edulvl = EDU %>% na_if(99) %>% na_if(97) %>% sjlabelled::as_character(),
-    i_gender = D3 %>% sjlabelled::as_character(),
+    # i_pinterest = na_if(Q21, 99) %>% na_if(98) %>% sjlabelled::as_character(), 
+    # i_edulvl = EDU %>% na_if(99) %>% na_if(97) %>% sjlabelled::as_character(),
+    # i_gender = D3 %>% sjlabelled::as_character(),
     
     # [R] Following the election in the media
     i_followelections = Q8 %>% as.numeric %>% replace(.>10, NA),
@@ -431,7 +406,9 @@ enx$epees_id[enx$p_numresp<3]
 
 enx <-
   enx %>% 
-  filter(p_numresp>=3) #%>% 
+  filter(p_numresp>=3) %>% 
+  mutate(cntry_short = cntry_short_be)
+
 
 ## 2.6 [SC] stacking data --------------------------------------------------------
 # ALl control variables
@@ -482,32 +459,24 @@ temp <-
   pivot_longer(names_to = "ees_partycode", values_to = "ptv", cols = matches("Q10_")) %>% 
   mutate(
     ees_partycode = ees_partycode %>% str_replace("q10", "party"),
-    p_uniqueid = str_c(cntry_short, "_", ees_partycode)
+    p_uniqueid_be = str_c(cntry_short, "_", ees_partycode),
     ) %>% 
   # Remove DV NA rows
   filter(ptv <= 10)  %>%
   
   # Remove parties not covered in EPEES
-  filter(p_uniqueid %in% enx$p_uniqueid) %>% 
+  filter(p_uniqueid_be %in% enx$p_uniqueid_be) %>% 
   
   # Connect to EPEES
   inner_join(enx)
 
 temp %>% 
     summarise(
-      countries = n_distinct(cntry_short),
-      parties = n_distinct(p_uniqueid),
+      countries = n_distinct(cntry_short_be),
+      parties = n_distinct(p_uniqueid_be),
       respondents = n_distinct(i_unique),
       dyads = n()
     ) %>% print()
-
-## VERIFICATION TESTS
-# GET A SENSE OF WHICH ROWS WE'VE JUST LOST => nothing in addition to those 
-
-# linkage %>% 
-#   select(cntry_short, party_engl, p_uniqueid) %>% 
-#   filter(p_uniqueid %in% enx$p_uniqueid) %>% 
-#   filter(p_uniqueid %out% temp$p_uniqueid)
 
 
 ## 2.7 dyadic measures --------
@@ -609,10 +578,6 @@ for (i in 1:9){
 
 
 # based on perceived distances
-# temp$d_ninterpos_perc <- 
-#   temp %>% 
-#   select(one_of(paste0("i_dist2party_",1:9)), d_percdist) %>%
-#   apply(1, function(x){sum(x[1:9]<x["d_percdist"], na.rm = T)})
 temp$d_ninterpos_perc <-
   temp %>%
   select(one_of(paste0("i_dist2party_",1:9)), d_percdist) %>%
@@ -649,7 +614,12 @@ tempdf <-
     # Control variables
     one_of(cntrls),
     # Nesting structure variables
-    cntry_short, p_uniqueid, i_unique,
+    cntry_short, 
+    ees_partyname_orig,
+    ees_partyname_engl,
+    p_uniqueid, 
+    p_uniqueid_be, 
+    i_unique,
     party_acro, party_lab,
 
     # Dependent Variable
@@ -672,9 +642,6 @@ tempdf <-
     i_followelections, # robustness
     )
 
-
 # 4. saving analysis dataset -------------------------------------------------
 vroom::vroom_write(tempdf, glue("data/{Sys.Date()}_Analysisfile.csv"))
 vroom::vroom_write(enx, glue("data/{Sys.Date()}_EPEES-file.csv"))
-
-

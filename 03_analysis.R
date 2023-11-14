@@ -1,11 +1,14 @@
-# 0. readme ----------------------------------------------------------------
-# annotation scheme of code
-# [T] Table output
-# [F] Figure output
-# [SC] Sample Cut
-# [R] Robustness Check
-
-
+# Title: NC-among-alternatives (PhD Study I)
+# Component: step 2/4
+# Context: [Hostile Campaigning Project]
+# Author: Philipp M.
+# Annotations:
+#   [T] Table output
+#   [F] Figure output
+#   [SC] Sample Cut
+#   [R] Robustness Check
+# 
+# 
 # 1. setup ---------------------------------------------------------
 # Change the following environment variable to this script's project folder path.
 Sys.setenv(WD = getwd())
@@ -34,10 +37,10 @@ pacman::p_load(
 )
 
 # load additional functions needed for this project
-source("00_utils.R")
+source("99_utils.R")
 
 # interplot function from the interplot package but adapted for a three-way interaction
-source("00_interplot-3-way.R")
+source("99_interplot-3-way.R")
 
 
 # ├ pre-sets for visualisations ------------------------------------------------------
@@ -115,6 +118,7 @@ tempdf_scale1 <-
   select(-p_prcEP19, -party_acro) %>%
   mutate_at(vars(all_of(stdsvars)), scale2)
 
+
 # ├ [SC, T] filter out outliers and incomplete cases ---------------------------
 tempdf_scale <-
   tempdf_scale1 %>%
@@ -133,31 +137,22 @@ tempdf_scale <-
   ungroup()
 
 # [Table 2] This table is manually created.
-list(
-  orig = tempdf_scale1,
-  sc1 = sc1,
-  sc2 = sc2,
-  analysis = tempdf_scale
-)
-# sample cut overview
-tempdf_scale1 %>%
-  summarise(
-    countries = n_distinct(cntry_short),
-    parties = n_distinct(p_uniqueid),
-    respondents = n_distinct(i_unique),
-    dyads = n()
-  ) %>%
-  print()
-
-# sample cut overview
-tempdf_scale %>%
-  summarise(
-    countries = n_distinct(cntry_short),
-    parties = n_distinct(p_uniqueid),
-    respondents = n_distinct(i_unique),
-    dyads = n()
-  ) %>%
-  print()
+scs <- list(
+  "orig" = tempdf_scale1,
+  "sc1" = sc1,
+  "sc2" = sc2,
+  "analysis" = tempdf_scale
+) %>% 
+  map(~{
+    .x %>% summarise(
+      countries = n_distinct(cntry_short),
+      parties = n_distinct(p_uniqueid),
+      respondents = n_distinct(i_unique),
+      dyads = n()
+    )
+  }) %>% enframe() %>% 
+  unnest_wider(value)
+write_csv(scs, file = "tables/02_samplecuts.csv")
 
 
 # ├ party-level df ----------------------------------------------
@@ -514,8 +509,8 @@ ranplot_adj <- get_ran_slopes(
   m2 = m1_adj_i,
   t1 = "p_resid_neg",
   t2 = "p_resid_unciv",
-  l1 = "Slopes of adjusted Negativity",
-  l2 = "Slopes of adjusted Incivility"
+  l1 = "Slopes of Adjusted Negativity",
+  l2 = "Slopes of Adjusted Incivility"
 )
 
 # [Figure 2]
@@ -1026,8 +1021,8 @@ p_part_adj_combo <-
   plot_inter_combo_lin(
     m_a = m_party_r_adj_neg,
     m_b = m_party_r_adj_inc,
-    var1alab = "adjusted negativity",
-    var1blab = "adjusted incivility",
+    var1alab = "Adjusted Negativity",
+    var1blab = "Adjusted Incivility",
     var1a = "p_resid_neg",
     var1b = "p_resid_unciv",
     var2 = "p_combo_wiki_emindist",
@@ -1200,8 +1195,8 @@ p_e_combo_adj <-
   plot_inter_combo_lin(
     m_a = m_e_neg_adj,
     m_b = m_e_inc_adj,
-    var1alab = "adjusted negativity",
-    var1blab = "adjusted incivility",
+    var1alab = "Adjusted Negativity",
+    var1blab = "Adjusted Incivility",
     var1a = "p_resid_neg",
     var1b = "p_resid_unciv",
     var2 = "e_ENP",

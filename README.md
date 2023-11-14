@@ -19,7 +19,11 @@ Download the following two files and place them in the '/data' folder of your pr
 2) 'ZA7581_cp.csv' - The party dataset. You can find this under 'Downloads > Other documents
 
 *2. Run the party matching script*  
-The script '01_party-matching-EPEES-EES.R' links and matches parties in the Voter Component of the European Election Study (EES) to parties in the EPEES_2019, the 2019 European Parliament Election Expert Survey dataset.
+The script '01_harmonisation-and-matching.R' links and matches parties in the Voter Component of the European Election Study (EES) to parties in the EPEES_2019, the 2019 European Parliament Election Expert Survey dataset. 
+
+The resulting file will be:  
+1. a .csv match file with a time stamp "00 2023-10-18_Linkage-matched-parties.csv" that includes i.a. the unique party id in the EES dataset and a newly created unique party id for the EPEES_19 dataset.
+2. Harmonised versions of the EPEES_19 and EES datasets.
 
 The matching is done in two steps.
 1. matching of parties via partyfacts.
@@ -30,13 +34,17 @@ The matching is done in two steps.
    The remaining, unmatched parties in the EPEES were matched manually with EES19
    party ids. These manual matches are available in the repository under 'data/00_manual-matches-EPEESxEES.csv'.
 
-The resulting file is... a linkage file
+*3. Run the data wrangling script*
+The data wrangling script prepares all necessary variables for the analysis and already drops parties from the EPEES file if they can not be matched with the EES data or if they have less than 3 expert ratings. The output of this script is are pre-processed EPEES and EES files stored in the '/data' directory as 'CURRENTDATE_EPEES-file.csv', and 'CURRENTDATE_Analysisfile.csv', where current date represents the time stamp of when the file was created.  
 
-
-
+If you have gone through these steps, you can skip to 1.) in the next section.
 
 ### Replication from analysis file  
-To replicate the plots and tables presented in the paper, download the entire repository, open an R session in the same directory and run the analysis script and then the tables script.
+*0. Download this repository.*  _Download the entire repository, open an R session / in the same directory._
+To replicate the plots and tables presented in the paper, download the entire repository, open an R session in the same directory. 
+
+*1. Recreating the analyses*
+Now you can run the analysis and the tables script.
 
 
 ### References

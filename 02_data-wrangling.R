@@ -1,14 +1,13 @@
-# Title: Study I
+# Title: NC-among-alternatives (PhD Study I)
+# Component: step 2/4
 # Context: [Hostile Campaigning Project]
 # Author: Philipp M.
-# 0. content ---------------------------------------------------------
-# 1. Loading Packages & Data
-# 2. Recoding
-# 3. Analyses
+# Annotations:
+#   [R] for Robustness checks
+#   [SC] for Sample Cuts
 # 
-# [R] for Robustness checks
-# [SC] for Sample Cuts
-# 1. loading packages & data -----------------------------------------
+# 
+# 1. setup -----------------------------------------
 ## 1.1 packages and functions ---------------------------------------------
 # loading / installing packages depending on whether it is already installed.
 pacman::p_load(
@@ -20,18 +19,14 @@ pacman::p_load(
   )
 
 # helper functions for this project
-source("00_utils.R")
+source("99_utils.R")
 
 ## 1.2 loading data -------------------------------------------------------
 # EPEES_19 dataset
 enx <- read_csv("data/EPEES19-cleaned.csv")
 
-# TODO ideally move any sjlabelled operations to the data prep. script; this should only be the newly created enx datafile
-# enx_lab <- haven::read_dta("data/EP2019_data_parties_v2.dta")
-
 # Cleaned EES dataset
 ees <- read_csv(file = "data/EES-cleaned.csv")
-ees_lab <- haven::read_dta(glue("data/ZA7581_v2-0-1.dta"))
 ees_parties <- read_csv(file = "data/EES_parties-cleaned.csv")
 
 # the linkage file created in '01_party-matching-EPEES-EES.R'
@@ -40,16 +35,7 @@ linkage <- read_csv("data/00 2023-11-01_Linkage-matched-parties.csv")
 
 # 2. recoding -------------------------------------------------------------
 ## 2.1 matching potential -------------------------------------------------
-#  2.1.1 Parties that I cannot match due to EES
-# temp <- enx %>%
-#   filter(is.na(ees_partycode)) %>%
-#   select(cntry, contains("party_"))
-# 
-# # 12 unmatched parties
-# # 183 parties should be matchable! => now 182
-# write_csv(temp, "data/99 parties unmatched due to EES.csv")
-
-#  2.1.2 Parties that I cannot match due to EPEES
+# Parties that I cannot match due to EPEES
 temp <-
   ees %>% 
   select(
@@ -258,12 +244,12 @@ enx <-
 ## 2.3 election-level ----------------------------------------------------
 enx <-
   enx %>%
-  group_by(cntry_short) %>%
+  group_by(cntry_short_be) %>%
   mutate(
     e_negativity = mean(p_negativity, na.rm=T),
-    e_incivility = mean (p_incivility, na.rm=T),
-    e_adj_incivility = mean (p_resid_unciv, na.rm=T),
-    e_adj_negativity = mean (p_resid_neg, na.rm=T),
+    e_incivility = mean(p_incivility, na.rm=T),
+    e_adj_incivility = mean(p_resid_unciv, na.rm=T),
+    e_adj_negativity = mean(p_resid_neg, na.rm=T),
   ) %>% ungroup %>% 
   mutate(
     # Effective number of parties
@@ -287,9 +273,6 @@ ees <-
     
     # control variables
     i_yrbrn = D4_1, # year born
-    # i_pinterest = na_if(Q21, 99) %>% na_if(98) %>% sjlabelled::as_character(), 
-    # i_edulvl = EDU %>% na_if(99) %>% na_if(97) %>% sjlabelled::as_character(),
-    # i_gender = D3 %>% sjlabelled::as_character(),
     
     # [R] Following the election in the media
     i_followelections = Q8 %>% as.numeric %>% replace(.>10, NA),
@@ -345,7 +328,6 @@ ees <- ees %>%
 
 
 ## 2.4.4 obj ideol distances to parties --------------------------------------------------------
-# TODO simplify!
 # 1. Merge all parties' positions back to EES
 ees <- enx %>% 
   select(
@@ -403,11 +385,13 @@ for (j in 1:9){
 enx$epees_id[enx$p_numresp<3]
 # =>  we lose Luxembourg entirely
 # 6 rows are kicked out
-
 enx <-
   enx %>% 
   filter(p_numresp>=3) %>% 
-  mutate(cntry_short = cntry_short_be)
+  mutate(
+    cntry_short = cntry_short_be,
+    p_uniqueid = p_uniqueid_be
+    )
 
 
 ## 2.6 [SC] stacking data --------------------------------------------------------
@@ -447,12 +431,6 @@ temp <-
     matches("Q10_"),
     matches("i_dist2party_"),
     all_of(cntrls %[out~% "p_|e_"), # all individual-level controls
-    # TODO remove these?
-    # all_of(paste0("i_combo_dist_wiki_", 1:9)),
-    # all_of(paste0("i_combo_dist_ewiki_", 1:9)),
-    # all_of(paste0("i_lrpos_dist_wiki_", 1:9)),
-    # all_of(paste0("i_lrpos_dist_ees_", 1:9)), 
-    # all_of(paste0("i_eupos_dist_", 1:9)),
          ) %>% 
   # Convert main DV into numeric
   mutate_at(vars(matches("Q10_")), as.numeric, na.rm = T) %>% 
@@ -520,62 +498,9 @@ for (i in 1:9){
   temp <- 
     temp %>% 
     mutate(
-      # "i_lrpos_dist_ees_{i}" := ifelse(ees_partycode_num == i, NA, .data[[glue("i_lrpos_dist_ees_{i}")]]),
-      # "i_lrpos_dist_wiki_{i}" := ifelse(ees_partycode_num == i, NA, .data[[glue("i_lrpos_dist_wiki_{i}")]]),
-      # "i_combo_dist_wiki_{i}" := ifelse(ees_partycode_num == i, NA, .data[[glue("i_combo_dist_wiki_{i}")]]),
-      # "i_combo_dist_ewiki_{i}" := ifelse(ees_partycode_num == i, NA, .data[[glue("i_combo_dist_ewiki_{i}")]]),
       "i_dist2party_{i}" := ifelse(ees_partycode_num == i, NA, .data[[glue("i_dist2party_{i}")]]),
     )
 }
-# Verification of this step
-# temp %>%
-#   select(ees_partycode_num, contains("lrpos_dist_wiki"))
-#   select(ees_partycode_num, contains("i_lrpos_dist_wiki_"))
-#   select(ees_partycode_num, contains("i_lrpos_dist_ees_"))
-#   select(ees_partycode_num, contains("i_dist2party_"))
-
-
-# # based on parties' perceived LR position
-# temp$d_ninterpos_ees <- 
-#   temp %>% 
-#   select(one_of(paste0("i_lrpos_dist_ees_",1:9)), d_lrdist_ees) %>%
-#   apply(1, function(x){sum(x[1:9]<x["d_lrdist_ees"], na.rm = T)})
-# temp$d_ninterpos_eq_ees <- 
-#   temp %>% 
-#   select(one_of(paste0("i_lrpos_dist_ees_",1:9)), d_lrdist_ees) %>%
-#   apply(1, function(x){sum(x[1:9]<=x["d_lrdist_ees"], na.rm = T)})
-
-# based on parties' wiki LR position
-# temp$d_ninterpos_wiki <- 
-#   temp %>% 
-#   select(one_of(paste0("i_lrpos_dist_wiki_",1:9)), d_lrdist_wiki) %>%
-#   apply(1, function(x){sum(x[1:9]<x["d_lrdist_wiki"], na.rm = T)})
-# temp$d_ninterpos_eq_wiki <- 
-#   temp %>% 
-#   select(one_of(paste0("i_lrpos_dist_wiki_",1:9)), d_lrdist_wiki) %>%
-#   apply(1, function(x){sum(x[1:9]<=x["d_lrdist_wiki"], na.rm = T)})
-
-# based on eu and wiki based lr position
-# temp$d_ninterpos_combo <- 
-#   temp %>% 
-#   select(one_of(paste0("i_combo_dist_wiki_",1:9)), d_combodist_wiki) %>%
-#   apply(1, function(x){sum(x[1:9]<x["d_combodist_wiki"], na.rm = T)})
-# temp$d_ninterpos_eq_combo <- 
-#   temp %>% 
-#   select(one_of(paste0("i_combo_dist_wiki_",1:9)), d_combodist_wiki) %>%
-#   apply(1, function(x){sum(x[1:9]<=x["d_combodist_wiki"], na.rm = T)})
-
-# based on eu and wiki based ideol position euclidean
-# temp$d_ninterpos_ecombo <- 
-#   temp %>% 
-#   select(one_of(paste0("i_combo_dist_ewiki_",1:9)), d_combodist_ewiki) %>%
-#   apply(1, function(x){sum(x[1:9]<x["d_combodist_ewiki"], na.rm = T)})
-# temp$d_ninterpos_eq_ecombo <- 
-#   temp %>% 
-#   select(one_of(paste0("i_combo_dist_ewiki_",1:9)), d_combodist_ewiki) %>%
-#   apply(1, function(x){sum(x[1:9]<=x["d_combodist_ewiki"], na.rm = T)})
-
-
 
 # based on perceived distances
 temp$d_ninterpos_perc <-
@@ -586,6 +511,8 @@ temp$d_ninterpos_perc <-
 # turn into a binary variable
 temp <- temp %>% 
   mutate(
+    # only valid for observations that have a perceived distance value!
+    d_ninterpos_perc = ifelse(is.na(d_percdist), NA, d_ninterpos_perc),
     d_ninterpos_perc_bi_num =
       case_when(
         d_ninterpos_perc > 0 ~ 1,
@@ -617,8 +544,7 @@ tempdf <-
     cntry_short, 
     ees_partyname_orig,
     ees_partyname_engl,
-    p_uniqueid, 
-    p_uniqueid_be, 
+    p_uniqueid = p_uniqueid_be, 
     i_unique,
     party_acro, party_lab,
 

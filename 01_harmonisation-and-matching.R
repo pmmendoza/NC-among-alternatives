@@ -1,40 +1,40 @@
-# 0. file description -----------------------------------------------------
-# This code links and matches parties in the Voter Component of the European
-# Election Study (EES) to parties in the EPEES_2019, the
-# 2019 European Parliament Election Expert Survey dataset.
-
-# The matching is done in two steps.
-# 1. matching of parties via partyfacts.
-#    The EPEES dataset has a CHES id. Via the partyfacts database (https://partyfacts.herokuapp.com/)
-#    We can link this CHES id to the parties' ids for the previous edition of the EES14
-#    Whenever a EES party's EES19 id is also contained in the EES14, we complete the match.
-# 2. manual matching.
-#    The remaining, unmatched parties in the EPEES were matched manually with EES19
-#    party ids. These matches are available in the repository under 'data/00_manual-matches-EPEESxEES.csv'
-
+# Title: NC-among-alternatives (PhD Study I)
+# Component: step 1/4
+# Context: [Hostile Campaigning Project]
+# Author: Philipp M.
+# Description:
+#   This code links and matches parties in the Voter Component of the European
+#   Election Study (EES) to parties in the EPEES_2019, the
+#   2019 European Parliament Election Expert Survey dataset.
+#   The matching is done in two steps:
+#   1. matching of parties via partyfacts.
+#      The EPEES dataset has a CHES id. Via the partyfacts database (https://partyfacts.herokuapp.com/)
+#      We can link this CHES id to the parties' ids for the previous edition of the EES14
+#      Whenever a EES party's EES19 id is also contained in the EES14, we complete the match.
+#   2. manual matching.
+#      The remaining, unmatched parties in the EPEES were matched manually with EES19
+#      party ids. These matches are available in the repository under 'data/00_manual-matches-EPEESxEES.csv'
+# 
+# 
 # 1. setup -------------------------------------------------------------------
-# change the following environment variable to this script's project folder path.
-Sys.setenv(WD = getwd())
-
 # Set working directory
+Sys.setenv(WD = getwd()) # change the following environment variable to this script's project folder path.
 setwd(Sys.getenv("WD"))
 
-# loading packages
 # packages installed but not loaded:
-# haven, pacman, sjlabelled;
+pacman::p_isinstalled(haven, pacman, sjlabelled)
+
+# loading packages
 pacman::p_load(
   tidyverse,
   tidylog,
   inops,
   glue,
-  stringdist,
-  # TODO remove these two
-  beepr,
-  clipr
+  stringdist
 )
 
 # load additional functions needed for this project
-source("00_utils.R")
+source("99_utils.R")
 
 
 # ├ loading data ------------------------------------------------------
@@ -158,6 +158,9 @@ enx <-
     epees_id_num = str_c(cntry_short, "_", str_remove(partycode, "party")),
   )
 
+# This Czech party seems to be missing some vote shares!
+enx$p_prcEP19[enx$epees_id == "CZ_TOP09"] <- 11.65
+
 cntry_dict <- enx %>% 
   select(cntry, cntry_short) %>% distinct %>% 
   with(setNames(object = cntry_short, nm = cntry))
@@ -186,7 +189,12 @@ ees <-
       regionbe == "Wallonia" ~ "BEW",
       T ~ cntry_short
     ),
-    i_unique = paste0(cntry_short, respid)
+    i_unique = paste0(cntry_short, respid),
+    
+    # saving the labels of some individual-level variables
+    i_pinterest = na_if(Q21, 99) %>% na_if(98) %>% sjlabelled::as_character(), 
+    i_edulvl = EDU %>% na_if(99) %>% na_if(97) %>% sjlabelled::as_character(),
+    i_gender = D3 %>% sjlabelled::as_character(),
   )
 
 
@@ -310,13 +318,17 @@ ees_parties2 <-
     ),
     ees_partycode = ees_party_code_num %>% paste0("party_",.)
   ) %>% 
+  rename(
+    ees_partyname_orig = Party_name_questionnaire,
+    ees_partyname_engl = name_engl
+    ) %>% 
   select(-epees_id_num_new, -ees_party_name) %>% arrange(cntry_short)
 
 # get the differentiation of belgium in here already
 link3 <- left_join(
   link3,
   ees_parties2 %>%
-    select(ees_party_id, cntry_short_be = cntry_short, ees_partycode) %>%
+    select(ees_party_id, cntry_short_be = cntry_short, ees_partycode, ees_partyname_orig, ees_partyname_engl) %>%
     filter(!is.na(ees_party_id))
 ) %>%
   mutate(cntry_short_be = ifelse(is.na(cntry_short_be), cntry_short, cntry_short_be))
@@ -331,7 +343,8 @@ enx2 <- link3 %>%
   filter(!is.na(ees_party_id)) %>%
   filter(!is.na(epees_id_num)) %>%
   select(cntry_short, cntry_short_be, ees_partycode,
-         epees_id_num, ees_party_id,
+         epees_id_num, ees_party_id, ees_partyname_orig,
+         ees_partyname_engl,
          #ees_party_id_new = ees_party_id, 
          ees_party_name) %>% 
   right_join(enx1 %>% select(-ees_party_id)) %>% 
@@ -344,7 +357,10 @@ enx2 <- link3 %>%
   filter(!(regionbe == "Wallonia" & ees_party_id == "1056325")|is.na(ees_party_id)) %>% 
   relocate(cntry, cntry_short, epees_id_num, epees_id, regionbe, ees_party_id, partyname, partycountry_acro) %>% 
   arrange(epees_id_num) %>% 
-  mutate(p_uniqueid = paste0(cntry_short, "_",ees_partycode))
+  mutate(
+    p_uniqueid = paste0(cntry_short, "_",ees_partycode),
+    p_uniqueid_be = paste0(cntry_short_be, "_",ees_partycode)
+    )
 
 # ├ final linkage file ------------------------------------------------------
 link_full <-
@@ -367,8 +383,8 @@ link_full <-
       select(
         cntry_short_be = cntry_short,
         regionbe=Region,
-        ees_partyname_engl = name_engl,
-        ees_partyname_orig = Party_name_questionnaire,
+        ees_partyname_engl,
+        ees_partyname_orig,
         ees_party_id,
         ees_partycode,
         epees_id_num,
@@ -390,6 +406,7 @@ link_full <-
   mutate(
     # create unique party_ids for ees
     p_uniqueid = paste0(cntry_short, "_party_", ees_party_code_num),
+    p_uniqueid_be = paste0(cntry_short_be, "_party_", ees_party_code_num),
   )
 # 182 perfect matches.
 

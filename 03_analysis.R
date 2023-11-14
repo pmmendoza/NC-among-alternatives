@@ -123,15 +123,22 @@ tempdf_scale <-
     is.numeric,
     any_vars(!outliers(., times = 1.5))
   ) %>%
+  {. ->> sc1} %>% 
   # filter out incomplete cases
   tidylog::filter(complete.cases(.)) %>%
+  {. ->> sc2} %>% 
   # filter out respondents disclosing less than 2 ptvs
   group_by(i_unique) %>%
   tidylog::filter(n() > 2) %>%
   ungroup()
 
 # [Table 2] This table is manually created.
-
+list(
+  orig = tempdf_scale1,
+  sc1 = sc1,
+  sc2 = sc2,
+  analysis = tempdf_scale
+)
 # sample cut overview
 tempdf_scale1 %>%
   summarise(

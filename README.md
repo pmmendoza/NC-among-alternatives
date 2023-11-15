@@ -6,7 +6,10 @@ Mendoza, P., Nai, A., Bos, L. (2023). The fleeting allure of dark campaigns. Bac
 
 ## Replication instructions  
 ### Replication from scratch  
-*0. Download this repository.*  _Download the entire repository, open an R session / in the same directory._
+*0. Download this repository.*  
+_Download the entire repository, start an R project in the same directory._  
+To assure the reproducibility of the current code, I have added a [renv](https://rstudio.github.io/renv/articles/renv.html) package control file. After having downloaded the repository, you can install all necessary packages and in the same versions used in this code by running `renv::restore()` within your R project.  
+
 *1. Download the necessary datasets.*  
 The analyses in this study are based on two other publicly available datasets cited in the paper:  
 1. The voter component of the European Election Study (Schmitt et al. 2021). Dataset: https://search.gesis.org/research_data/ZA7581  

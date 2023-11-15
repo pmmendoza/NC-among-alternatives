@@ -204,51 +204,6 @@ gm <- gof_map %>%
     )
   )
 
-# Create the actual table
-nicelyformatted_table <- function(hlinepos = 10,
-                                  models,
-                                  hlinepos1,
-                                  hlinepos2,
-                                  output,
-                                  # coef_map,
-                                  FONT = "EB Garamond",
-                                  ...) {
-  modelsummary(
-    models = models,
-    stars = T,
-    fmt = function(x) format(round(x, 3), nsmall = 3),
-    title = "Effect of NC on respondent's propensity to vote for the attacker",
-    shape = group + term ~ model,
-    estimate = "{estimate}{stars}{ifelse(conf.low %in~% 'NA','',paste0(' [',conf.low,',',conf.high,']'))}",
-    statistic = NULL,
-    output = "flextable",
-    gof_map = gm,
-    ...
-  ) %>%
-    flextable::font(
-      fontname = FONT,
-      part = "all"
-    ) %>%
-    flextable::fontsize(9) %>%
-    flextable::autofit() %>%
-    hline(hlinepos1) %>%
-    hline(hlinepos2) %>%
-    fit_to_width(10) %>%
-    flextable::save_as_docx(
-      path = output,
-      pr_section = prop_section(
-        page_size = page_size(
-          orient = "landscape",
-          width = 8.3, height = 11.7
-        ),
-        type = "continuous",
-        page_margins = page_mar()
-      )
-    )
-  beepr::beep(10)
-}
-
-
 # ├ main models ----------------------------------------------------------------
 nicelyformatted_table(
   models = list(

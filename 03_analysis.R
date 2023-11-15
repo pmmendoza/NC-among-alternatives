@@ -7,10 +7,10 @@
 #   [F] Figure output
 #   [SC] Sample Cut
 #   [R] Robustness Check
-# Note: To create the tables for the respective regression models cf. 04_tables 
+# Note: To create the tables for the respective regression models, also run 04_tables with the objects created from this code!
 #
 #
-# 1. setup ---------------------------------------------------------
+# 1. setup ---------------------------------------------------------------------
 # Change the following environment variable to this script's project folder path.
 Sys.setenv(WD = getwd())
 
@@ -44,7 +44,7 @@ source("99_utils.R")
 source("99_interplot-3-way.R")
 
 
-# ├ pre-sets for visualisations ------------------------------------------------------
+# ├ pre-sets for visualisations ------------------------------------------------
 # define font for plots
 FONT <- "EB Garamond" # for paper word paper version
 
@@ -64,7 +64,7 @@ theme_set(mingara)
 update_geom_defaults("text", list(colour = "black", family = theme_get()$text$family))
 
 
-# ├ create the necessary folder structure ------------------
+# ├ create the necessary folder structure --------------------------------------
 folders <- c("plots", "tables", glue("plots/{FONT}"))
 walk(folders, ~ {
   if (!dir.exists(.x)) {
@@ -73,7 +73,7 @@ walk(folders, ~ {
 })
 
 
-# ├ load data ---------------------------------------------
+# ├ load data ------------------------------------------------------------------
 # Get the date of the most recent Analysis file:
 mostrecentdate <- (list.files("data/") %[in~% "Analysisfile") %>%
   str_remove("_.*") %>%
@@ -95,7 +95,7 @@ enx <- vroom(glue("data/{mostrecentdate}_EPEES-file.csv"))
 print(glue("The most recent file is from {mostrecentdate};"))
 
 
-# 2. rescaling ----------------------------------------------
+# 2. rescaling -----------------------------------------------------------------
 # For better fitting of models, all numeric covariates that do not require to
 # be interpreted meaningfully are standardised.
 
@@ -128,10 +128,14 @@ tempdf_scale <-
     is.numeric,
     any_vars(!outliers(., times = 1.5))
   ) %>%
-  {. ->> sc1} %>% 
+  {
+    . ->> sc1
+  } %>%
   # filter out incomplete cases
   tidylog::filter(complete.cases(.)) %>%
-  {. ->> sc2} %>% 
+  {
+    . ->> sc2
+  } %>%
   # filter out respondents disclosing less than 2 ptvs
   group_by(i_unique) %>%
   tidylog::filter(n() > 2) %>%
@@ -143,20 +147,21 @@ scs <- list(
   "sc1" = sc1,
   "sc2" = sc2,
   "analysis" = tempdf_scale
-) %>% 
-  map(~{
+) %>%
+  map(~ {
     .x %>% summarise(
       countries = n_distinct(cntry_short),
       parties = n_distinct(p_uniqueid),
       respondents = n_distinct(i_unique),
       dyads = n()
     )
-  }) %>% enframe() %>% 
+  }) %>%
+  enframe() %>%
   unnest_wider(value)
 write_csv(scs, file = "tables/02_samplecuts.csv")
 
 
-# ├ party-level df ----------------------------------------------
+# ├ party-level df -------------------------------------------------------------
 # Given that all interesting variation in the party- and system-level models
 # is at the party- and system-level (but not at the individual-level), we
 # aggregate the dataset here to the party-level.
@@ -197,7 +202,7 @@ party_df <-
   left_join(enx %>% select(ees_partyname_orig, cntry_short, party_acro))
 
 
-# 3. descriptive stats table ----------------------------------------------
+# 3. descriptive stats table ---------------------------------------------------
 # So that all the pictures of the mini plots are saved properly for knitting
 tempdf_scale %>%
   ungroup() %>%
@@ -269,7 +274,7 @@ write_csv(tempdata, "data/temp2.csv")
 
 
 
-# 4. visualisation of both dimensions -----------------------------------------------------
+# 4. visualisation of both dimensions ------------------------------------------
 p1 <- party_df %>%
   mutate(
     p_prcEP19 = p_prcEP19 * 100,
@@ -326,7 +331,7 @@ save_plot(plot = p8, file = glue("plots/{FONT}/08_mindist-for-greece.png"))
 
 
 
-# 5. random slopes and variance decomposition ---------------------------------------------------------
+# 5. random slopes and variance decomposition ----------------------------------
 # ├ [T] variance decomposition ----
 # empty model
 m0 <-
@@ -358,7 +363,7 @@ variances %>%
   kableExtra::save_kable("tables/03_variances.pdf")
 
 
-# ├ [F] random slopes with ptvs ---------------------------------------------------------
+# ├ [F] random slopes with ptvs ------------------------------------------------
 # Visualise random intercepts at country_level WITH PTV
 
 # Running the random slope models by dimension
@@ -367,7 +372,7 @@ m1_n <-
   lmer(
     formula = glue("d_ptv ~ p_negativity + (p_negativity | cntry_short) + (1 | i_unique)"),
     verbose = 100, data = tempdf_scale,
-    control = lmerControl(optimizer = "Nelder_Mead")
+    control = lmerControl(optimizer = "bobyqa")
   )
 beepr::beep(10)
 
@@ -376,7 +381,7 @@ m1_i <-
   lmer(
     formula = glue("d_ptv ~ p_incivility + (p_incivility | cntry_short) + (1 | i_unique)"),
     verbose = 100, data = tempdf_scale,
-    control = lmerControl(optimizer = "Nelder_Mead")
+    control = lmerControl(optimizer = "bobyqa")
   )
 beepr::beep(10)
 
@@ -386,7 +391,7 @@ m1_adj_n <-
   lmer(
     formula = glue("d_ptv ~ p_resid_neg + (p_resid_neg | cntry_short) + (1 | i_unique)"),
     verbose = 100, data = tempdf_scale,
-    control = lmerControl(optimizer = "Nelder_Mead")
+    control = lmerControl(optimizer = "bobyqa")
   )
 beepr::beep(10)
 
@@ -395,7 +400,7 @@ m1_adj_i <-
   lmer(
     formula = glue("d_ptv ~ p_resid_unciv + (p_resid_unciv | cntry_short) + (1 | i_unique)"),
     verbose = 100, data = tempdf_scale,
-    control = lmerControl(optimizer = "Nelder_Mead")
+    control = lmerControl(optimizer = "bobyqa")
   )
 beepr::beep(10)
 
@@ -419,27 +424,32 @@ m1c_n <-
     ),
     verbose = 100,
     data = tempdf_scale,
-    control = lmerControl(optimizer = "Nelder_Mead")
+    control = lmerControl(optimizer = "bobyqa")
   )
 beepr::beep(10)
 
 # Incivility
 m1c_i <-
   lmer(
-    formula = glue("d_ptv ~
-                  i_gender + i_yrbrn + i_edulvl + i_pinterest +
-                  i_eupos + i_lrpos + i_extremity_eu + i_extremity_lr +
-                  p_lrpos_wiki + p_lrpos_extreme_wiki +
-                  p_eupos + p_eupos_extreme +
-                  p_inciv_close_ecombo +
-                  p_incumbency +
-                  exp_lrscale + exp_perceptEU +
-                  exp_familiar + exp_easy + exp_citizen + exp_female +
-                  e_region + e_incivility +
-                  p_incivility + (p_incivility | cntry_short) + (1 | i_unique)"),
-    verbose = 100, data = tempdf_scale,
-    control = lmerControl(optimizer = "Nelder_Mead")
+    formula = glue(
+      "d_ptv ~
+      i_gender + i_yrbrn + i_edulvl + i_pinterest +
+      i_eupos + i_lrpos + i_extremity_eu + i_extremity_lr +
+      p_lrpos_wiki + p_lrpos_extreme_wiki +
+      p_eupos + p_eupos_extreme +
+      p_inciv_close_ecombo +
+      p_incumbency +
+      exp_lrscale + exp_perceptEU +
+      exp_familiar + exp_easy + exp_citizen + exp_female +
+      e_region + e_incivility +
+      p_incivility + (p_incivility | cntry_short) + (1 | i_unique)"
+    ),
+    verbose = 100,
+    data = tempdf_scale,
+    control = lmerControl(optimizer = "bobyqa")
   )
+# 
+
 
 # with all controls except for Euroscepticism
 # negativity
@@ -456,7 +466,7 @@ m1cnoe_n <-
   e_region + e_negativity +
                    p_negativity + (p_negativity | cntry_short) + (1 | i_unique)"),
     verbose = 100, data = tempdf_scale,
-    control = lmerControl(optimizer = "Nelder_Mead")
+    control = lmerControl(optimizer = "bobyqa")
   )
 beepr::beep(10)
 
@@ -475,7 +485,7 @@ m1cnoe_i <-
                   p_incivility + (p_incivility | cntry_short) + (1 | i_unique)"),
     verbose = 100,
     data = tempdf_scale,
-    control = lmerControl(optimizer = "Nelder_Mead")
+    control = lmerControl(optimizer = "bobyqa")
   )
 
 ranplot_main <- get_ran_slopes(
@@ -541,8 +551,8 @@ save_plot(
 beepr::beep(10)
 
 
-# 6. individual-level -----------------------------------------------------
-# ├ [F] main model ------------------------------------
+# 6. individual-level ----------------------------------------------------------
+# ├ [F] main model -------------------------------------------------------------
 # NOTE: General Model Notes
 # * Our main dependent variable is at the dyad-level: a voter's ptv score
 #   for a specific party.
@@ -1220,12 +1230,13 @@ forml_e_inc_vote <-
 # Modelling
 m_system_neg_votes <-
   lmer(
-    formula = forml_e_neg,
+    formula = forml_e_neg_vote,
     verbose = 100,
     data = party_df,
     REML = T,
     control = lmerControl(optimizer = "bobyqa")
   )
+
 beepr::beep(10)
 
 m_system_inc_votes <-
@@ -1257,4 +1268,3 @@ save_plot(
   p_e_combo_vote,
   file = glue("plots/{FONT}/16_AME_system_vote_{FONT}.png")
 )
-

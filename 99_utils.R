@@ -269,12 +269,14 @@ plot_inter_combo_lin <- function(m_a,
                                  ylab = "Average marginal effect of campaign\ndimension on ptv for sponsor",
                                  xlab = "Distance to closest competitor",
                                  newymin) {
+  # create interplots
   ma <- interplot::interplot(
     m = m_a,
     var1 = var1a,
     var2 = var2,
-    hist = T
+    hist = T,
   )
+  
   mb <- interplot::interplot(
     m = m_b,
     var1 = var1b,
@@ -282,10 +284,10 @@ plot_inter_combo_lin <- function(m_a,
     hist = T,
   )
   
+  # compile the plots into one grid
   gridExtra::grid.arrange(
-    (ma +
-       ylim(ymin, ymax) + labs(title = var1alab)) %>% set_interp_hist_to(ymin, histo_height = histo_height),
-    (mb + ylim(ymin, ymax) + labs(title = var1blab)) %>% set_interp_hist_to(ymin, histo_height = histo_height),
+    (ma %>% set_interp_hist_to(ymin, histo_height = histo_height)) + ylim(ymin, ymax) + labs(title = var1alab),
+    (mb %>% set_interp_hist_to(ymin, histo_height = histo_height)) + ylim(ymin, ymax) + labs(title = var1blab),
     nrow = 1,
     left = textGrob(
       ylab,

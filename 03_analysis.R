@@ -1,5 +1,5 @@
 # Title: NC-among-alternatives (PhD Study I)
-# Component: step 2/4
+# Component: step 3/4
 # Context: [Hostile Campaigning Project]
 # Author: Philipp M.
 # Annotations:
@@ -7,8 +7,9 @@
 #   [F] Figure output
 #   [SC] Sample Cut
 #   [R] Robustness Check
-# 
-# 
+# Note: To create the tables for the respective regression models cf. 04_tables 
+#
+#
 # 1. setup ---------------------------------------------------------
 # Change the following environment variable to this script's project folder path.
 Sys.setenv(WD = getwd())
@@ -619,8 +620,6 @@ p_int_ind_comb <- plot_interplot_combo(
   ylab = "Average marginal effect of campaign\ndimension on ptv for sponsor",
   collab = "Availability of alternatives"
 )
-p_int_ind_comb
-
 
 
 # [Figure 5]
@@ -980,7 +979,7 @@ save_plot(
 )
 
 
-# ├ [R][F] adjusted ----
+# ├ [R][F] adjusted ------------------------------------------------------
 forml_p_neg_adj <-
   forml_p_neg %>%
   str_replace_all("p_negativity", "p_resid_neg") %>%
@@ -1029,7 +1028,6 @@ p_part_adj_combo <-
     ymin = -0.64,
     ymax = 0.5
   )
-p_part_adj_combo
 
 # [Figure 11]
 save_plot(
@@ -1038,8 +1036,7 @@ save_plot(
 )
 
 
-
-# ├ [R][F] vote ----
+# ├ [R][F] vote  ------------------------------------------------------
 forml_p_neg_vote <-
   forml_p_neg %>%
   str_replace_all("p_ptv", "p_prcEP19")
@@ -1067,7 +1064,6 @@ m_party_r_votes_inc <-
   )
 beepr::beep(10)
 
-
 p_part_combo_vote <-
   plot_inter_combo_lin(
     m_a = m_party_r_votes_neg,
@@ -1079,13 +1075,13 @@ p_part_combo_vote <-
     ymax = 0.5,
     ylab = "Average marginal effect of campaign\ndimensions on % of votes in EP elections"
   )
-p_part_combo_vote
 
 # [Figure 12]
 save_plot(
   p_part_combo_vote,
   file = glue("plots/{FONT}/12_AME_party_adj_vote_{FONT}.png")
 )
+
 
 # 8. system-level ---------------------------------------------------------
 forml_e_neg <-
@@ -1111,7 +1107,7 @@ forml_e_neg <-
       sep = " + "
     )
   )
-forml_e_neg
+
 forml_e_inc <- forml_e_neg %>%
   str_replace_all("negativity", "incivility") %>%
   str_replace_all("p_neg_close_ecombo", "p_inciv_close_ecombo")
@@ -1158,8 +1154,7 @@ save_plot(
 )
 
 
-# ├ [R][F] adjusted ----
-
+# ├ [R][F] adjusted  ------------------------------------------------------
 forml_e_neg_adj <-
   forml_e_neg %>%
   str_replace_all("p_negativity", "p_resid_neg") %>%
@@ -1204,14 +1199,12 @@ p_e_combo_adj <-
     ymax = 0.5,
     xlab = "Effective Number of Parties"
   )
-p_e_combo_adj
 
 # [Figure 15]
 save_plot(
   p_e_combo_adj,
   file = glue("plots/{FONT}/15_AME_system_adj_{FONT}.png")
 )
-
 
 
 # ├ [R][F] vote-shares ----
@@ -1258,7 +1251,6 @@ p_e_combo_vote <-
     ylab = "Average marginal effect of campaig\ndimension on % of votes in the EP19 elections",
     xlab = "Effective Number of Parties"
   )
-p_e_combo_vote
 
 # [Figure 16]
 save_plot(
@@ -1266,4 +1258,3 @@ save_plot(
   file = glue("plots/{FONT}/16_AME_system_vote_{FONT}.png")
 )
 
-# To create the tables for the respective regression models cf. 04_tables

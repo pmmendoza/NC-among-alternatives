@@ -4,9 +4,6 @@
 # Author: Philipp M.
 # Annotations:
 #   [T] Table output
-#   [F] Figure output
-#   [SC] Sample Cut
-#   [R] Robustness Check
 # Note:  
 #   This code only works after letting the analysis code run through once
 #   as it requires the lmer mixed model items that should be displayed in the table
@@ -204,7 +201,8 @@ gm <- gof_map %>%
     )
   )
 
-# ├ main models ----------------------------------------------------------------
+# ├ [T] main models ----------------------------------------------------------------
+# [Table 4]
 nicelyformatted_table(
   models = list(
     "Voters (neg)" = m_ind_noideol_neg,
@@ -229,7 +227,8 @@ nicelyformatted_table(
 )
 
 
-# ├ 3-way interactions ---------------------------------------------------------
+# ├ [T] 3-way interactions ---------------------------------------------------------
+# [Table 5]
 nicelyformatted_table(
   hlinepos1 = 48,
   hlinepos2 = 52,
@@ -252,7 +251,8 @@ nicelyformatted_table(
 )
 
 
-# ├ with Adjusted variables ----------------------------------------------------
+# ├ [T] with Adjusted variables ----------------------------------------------------
+# [Table 6]
 nicelyformatted_table(
   models = list(
     "Voters (neg)" = m_ind_noideol_neg_adj,
@@ -277,7 +277,8 @@ nicelyformatted_table(
 )
 
 
-# ├ votes as DV ----------------------------------------------------------------
+# ├ [T] votes as DV ----------------------------------------------------------------
+# [Table 7]
 nicelyformatted_table(
   models = list(
     "Parties (neg)" = m_party_r_votes_neg,

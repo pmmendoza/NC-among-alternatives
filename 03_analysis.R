@@ -74,25 +74,36 @@ walk(folders, ~ {
 
 
 # ├ load data ------------------------------------------------------------------
-# Get the date of the most recent Analysis file:
-mostrecentdate <- (list.files("data/") %[in~% "Analysisfile") %>%
-  str_remove("_.*") %>%
-  as.Date() %>%
-  max()
+# Check if the relevant files are already created, alternatively downlaod them 
+# from OSF
+DATA1 <- "data/02_Analysisfile.csv"
+DATA2 <- "data/02_EPEES-file.csv"
 
-# Load the most recent analysis file
-tempdf <- vroom(glue("data/{mostrecentdate}_Analysisfile.csv"))
-print(glue("The most recent file is from {mostrecentdate};"))
+# ANALYSIS DATA
+if (!file.exists(DATA1)) {
+  if(readline(glue("The dataset {DATA1} is not in the current data directory, should it be downloaded from the OSF repository?[T/F]"))){
+    download.file(
+      url = "https://osf.io/download/p6zd2/",
+      destfile = DATA1
+    )
+  }
+}
 
-# Get the most recent EPEES file
-mostrecentdate <- (list.files("data/") %[in~% "EPEES-file") %>%
-  str_remove("_.*") %>%
-  as.Date() %>%
-  max()
+# EPEES
+if (!file.exists(DATA2)) {
+  if(readline(glue("The dataset {DATA2} is not in the current data directory, should it be downloaded from the OSF repository?[T/F]"))){
+    download.file(
+      url = "https://osf.io/download/5dtvp/",
+      destfile = DATA2
+    )
+  }
+}
 
-# Load the most recent EPEES set
-enx <- vroom(glue("data/{mostrecentdate}_EPEES-file.csv"))
-print(glue("The most recent file is from {mostrecentdate};"))
+# Load the analysis file
+tempdf <- vroom(file = DATA1)
+
+# Load the EPEES data set
+enx <- vroom(file = DATA2)
 
 
 # 2. rescaling -----------------------------------------------------------------

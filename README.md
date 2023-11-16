@@ -9,9 +9,6 @@ Backlash from negative and uncivil campaigning in the presence of
 
 **data:**
 
--   `data/EPEES19_data.dta` - An adapted version of the EPEES_19
-    replication material (Nai et al. 2022).
-
 -   `data/00_manual-matches-EPEESxEES.csv` - A manual matching file used
     to connect EPEES19 to the EES Voter data.
 

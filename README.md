@@ -13,7 +13,7 @@ To assure the reproducibility of the current code, I have added a [renv](https:/
 __1. Download the necessary datasets.__  
 The analyses in this study are based on two other publicly available datasets cited in the paper:  
 1. The voter component of the European Election Study (Schmitt et al. 2021). Dataset: https://search.gesis.org/research_data/ZA7581  
-2. The EPEES_19 published as replication material (Nai et al. 2022). Dataset: https://osf.io/bzm48  
+2. An adapted version of the EPEES_19 replication material (Nai et al. 2022). Dataset: https://osf.io/bzm48  
 
 To be able to run this code you first need to manually download the EES datasets from the GESIS data archive.
 After logging in to the GESIS data archive you can access the data here: https://search.gesis.org/research_data/ZA7581

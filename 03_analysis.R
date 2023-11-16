@@ -202,9 +202,9 @@ party_df <-
   left_join(enx %>% select(ees_partyname_orig, cntry_short, party_acro))
 
 
-# 3. descriptive stats table ---------------------------------------------------
+# 3. [T] descriptive stats table ---------------------------------------------------
 # So that all the pictures of the mini plots are saved properly for knitting
-tempdf_scale %>%
+descvars <- tempdf_scale %>%
   ungroup() %>%
   select(
     # Dependent Variable
@@ -218,7 +218,7 @@ tempdf_scale %>%
     d_ninterpos_perc_bi_num,
   ) %>%
   {
-    . ->> tempdata
+    as.list(.) ->> varlists
   } %>%
   skimr::skim() %>%
   select(
@@ -253,25 +253,26 @@ tempdf_scale %>%
     histogram = ""
   ) %>%
   select(-skim_variable) %>%
-  relocate(variable, role, level) %>%
-  write_csv("data/temp.csv")
-write_csv(tempdata, "data/temp2.csv")
+  relocate(variable, role, level)
 
-# To update the descriptives table on overleaf:
-# 1) pull the edits from overleaf
-# 2) knit the Descriptives-table.Rmd
-# 3) stage & committ all edits (not MAIN.tex) (incl. the table file edits) to overleaf & push
-# 3) only keep the tex file between begin and end document.
-
-# rmarkdown::render("Descriptives-table.Rmd"
-# , output_dir = "tables/"
-# )
-
-# Remove the document components so as to leave it as a tex doc;
-# desctable <- readLines(con = "Descriptives-table.tex")
-# desctable[which(desctable %in~% "begin\\{table\\}"):which(desctable %in~% "end\\{table\\}")] %>%
-#   writeLines(con = "Descriptives-table_edited.tex")
-
+# [Table 3]
+# Knitting to a pdf document
+descvars %>%
+  mutate(
+    boxplot = "", 
+    histogram = "") %>% 
+  mutate_all(kableExtra::linebreak) %>% 
+  kableExtra::kbl(booktabs = T, 
+                  digits = 2, 
+                  caption = "Descriptive Statistics of main variables", 
+                  escape = F) %>% 
+  kableExtra::kable_paper(full_width = F, html_font = FONT) %>% 
+  kableExtra::row_spec(0, extra_css = "border-bottom: 1px solid", bold = F) %>%
+  kableExtra::row_spec(6, extra_css = "border-bottom: 1px solid", bold = F) %>%
+  kableExtra::add_footnote("See the next table for the number of valid observations per level.") %>% 
+  kableExtra::column_spec(8, image = kableExtra::spec_boxplot(varlists)) %>%
+  kableExtra::column_spec(9, image = kableExtra::spec_hist(varlists)) %>%
+  kableExtra::save_kable("tables/03_variances.pdf")
 
 
 # 4. visualisation of both dimensions ------------------------------------------

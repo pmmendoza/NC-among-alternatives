@@ -45,8 +45,8 @@ EPEESFILE <- "data/EPEES19_data.dta"
 if (!file.exists(EPEESFILE)) {
   download.file(
     # TODO adjust this to my own repo!
-    url = "https://osf.io/download/2msvf/",
-    destfile = "data/EPEES19_data.dta"
+    url = "https://osf.io/download/s9qjh/",
+    destfile = EPEESFILE
   )
 }
 

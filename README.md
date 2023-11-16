@@ -25,8 +25,8 @@ __2. Run the party matching script__
 The script '01_harmonisation-and-matching.R' links and matches parties in the Voter Component of the European Election Study (EES) to parties in the EPEES_2019, the 2019 European Parliament Election Expert Survey dataset.  
 
 The resulting file will be:  
-1. a .csv match file with a time stamp "00 2023-10-18_Linkage-matched-parties.csv" that includes i.a. the unique party id in the EES dataset and a newly created unique party id for the EPEES_19 dataset.
-2. Harmonised versions of the EPEES_19 and EES datasets.
+1. A .csv match file with a time stamp "00 2023-10-18_Linkage-matched-parties.csv" that includes i.a. the unique party id in the EES dataset and a newly created unique party id for the EPEES_19 dataset.  
+2. A harmonised versions of the EPEES_19 and EES datasets.
 
 The matching is done in two steps.
 1. matching of parties via partyfacts.

@@ -21,9 +21,6 @@
 Sys.setenv(WD = getwd()) # change the following environment variable to this script's project folder path.
 setwd(Sys.getenv("WD"))
 
-# packages installed but not loaded:
-pacman::p_isinstalled(haven, pacman, sjlabelled)
-
 # loading packages
 pacman::p_load(
   tidyverse,
@@ -44,16 +41,17 @@ if (!dir.exists("data")) {
 }
 
 # downloading the EPEES_19 dataset
-if (!file.exists("data/EPEES_19_datapart.dta")) {
+EPEESFILE <- "data/EPEES19_data.dta"
+if (!file.exists(EPEESFILE)) {
   download.file(
     # TODO adjust this to my own repo!
-    url = "https://osf.io/download/bzm48/",
-    destfile = "data/EP2019_data_parties_v2.dta"
+    url = "https://osf.io/download/2msvf/",
+    destfile = "data/EPEES19_data.dta"
   )
 }
 
 # loading the EPEES_19 dataset
-enx <- haven::read_dta("data/EP2019_data_parties_v2.dta")
+enx <- haven::read_dta(EPEESFILE)
 
 # check if the EES datasets exist already
 if (!file.exists("data/ZA7581_v2-0-1.dta") | !file.exists("data/ZA7581_cp.csv")) {

@@ -91,10 +91,9 @@ dataset.
 
 The resulting file will be:
 
--   A .csv match file with a time stamp
-    `00 2023-10-18_Linkage-matched-parties.csv` that includes i.a. the
-    unique party id in the EES dataset and a newly created unique party
-    id for the EPEES_19 dataset.
+-   A .csv match file `01_Linkage-matched-parties.csv` that includes
+    i.a. the unique party id in the EES dataset and a newly created
+    unique party id for the EPEES_19 dataset.
 
 -   A harmonised versions of the EPEES_19 and EES datasets.
 
@@ -119,14 +118,11 @@ be matched with the EES data or if they have less than 3 expert ratings.
 The output of this script is are pre-processed EPEES and EES files
 stored in the `~/data` directory as:
 
--   `CURRENTDATE_EPEES-file.csv` and
+-   `02_EPEES-file.csv`
 
--   `CURRENTDATE_Analysisfile.csv`
+-   `02_Analysisfile.csv`
 
-where current date represents the time stamp of when the file was
-created.
-
-### B) Replication from analysis file
+### B) Replication from analysis files
 
 **1. Recreating the analyses**\
 Run the analysis and the tables script. Note that the tables script only

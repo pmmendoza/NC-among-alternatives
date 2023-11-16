@@ -420,16 +420,16 @@ link_full %>%
 # 3. save the matchfile and the harmonised files ------------------------------------------------------
 # All parties
 link_full %>%
-  write_csv("data/00 2023-11-01_Linkage-all-parties.csv")
+  write_csv("data/01_Linkage-all-parties.csv")
 
 # Only matched
 link_full %>%
   filter(!is.na(ees_party_id), !is.na(epees_id_num)) %>%
-  write_csv("data/00 2023-11-01_Linkage-matched-parties.csv")
+  write_csv("data/01_Linkage-matched-parties.csv")
 
 
 # ├ write the cleaned data sets back to disk ------------------------------------------------------
 # ENX cannot have the new cntry_short because it doesn't differentiate parties enough in Belgium
-write_csv(enx2 %>% select(-starts_with("px_")), file = "data/EPEES19-cleaned.csv")
-write_csv(ees_parties2, file = "data/EES_parties-cleaned.csv")
-write_csv(ees, file = "data/EES-cleaned.csv")
+write_csv(enx2 %>% select(-starts_with("px_")), file = "data/01_EPEES19-cleaned.csv")
+write_csv(ees_parties2, file = "data/01_EES_parties-cleaned.csv")
+write_csv(ees, file = "data/01_EES-cleaned.csv")

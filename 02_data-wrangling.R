@@ -24,14 +24,14 @@ source("99_utils.R")
 
 ## 1.2 loading data -------------------------------------------------------
 # EPEES_19 dataset
-enx <- read_csv("data/EPEES19-cleaned.csv")
+enx <- read_csv("data/01_EPEES19-cleaned.csv")
 
 # Cleaned EES dataset
-ees <- read_csv(file = "data/EES-cleaned.csv")
-ees_parties <- read_csv(file = "data/EES_parties-cleaned.csv")
+ees <- read_csv(file = "data/01_EES-cleaned.csv")
+ees_parties <- read_csv(file = "data/01_EES_parties-cleaned.csv")
 
 # the linkage file created in '01_party-matching-EPEES-EES.R'
-linkage <- read_csv("data/00 2023-11-01_Linkage-matched-parties.csv")
+linkage <- read_csv("data/01_Linkage-matched-parties.csv")
 
 
 # 2. recoding -------------------------------------------------------------
@@ -65,7 +65,7 @@ temp <-
 
 # CY_7 and SK_10 exist in the answers but not in the codebook
 sc_noepees <- left_join(temp, ees_parties) %>% select(cntry_short, ees_party_id, ees_partyname_engl, epees_id_num)
-write_csv(sc_noepees, "data/99 parties unmatched due to EPEES.csv")
+write_csv(sc_noepees, "data/02_parties unmatched due to EPEES.csv")
 
 
 # [SC] unmatched by EPEES ----------------------------------------------------
@@ -570,5 +570,5 @@ tempdf <-
     )
 
 # 4. saving analysis dataset -------------------------------------------------
-vroom::vroom_write(tempdf, glue("data/{Sys.Date()}_Analysisfile.csv"))
-vroom::vroom_write(enx, glue("data/{Sys.Date()}_EPEES-file.csv"))
+vroom::vroom_write(tempdf, glue("data/02_Analysisfile.csv"))
+vroom::vroom_write(enx, glue("data/02_EPEES-file.csv"))

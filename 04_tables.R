@@ -234,9 +234,9 @@ nicelyformatted_table(
   hlinepos2 = 52,
   models = list(
     "Voters by ideologigal dist. to sponsor (negativity)" = m_indiv_int_ideol_neg,
-    "Voters by ideologigal dist. to sponsor" = m_indiv_int_ideol_inc,
-    "Voters by following the election (incivility)" = m_indiv_int_follow_inc,
-    "Voters by following the election (negativity)" = m_indiv_int_follow_neg
+    "Voters by ideologigal dist. to sponsor (incivility)" = m_indiv_int_ideol_inc,
+    "Voters by following the election (negativity)" = m_indiv_int_follow_neg,
+    "Voters by following the election (incivility)" = m_indiv_int_follow_inc
   ),
   coef_map = coef_map,
   FONT = FONT,

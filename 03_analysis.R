@@ -266,7 +266,7 @@ descvars <- tempdf_scale %>%
   select(-skim_variable) %>%
   relocate(variable, role, level)
 
-# [Table 3]
+# [Table 1]
 # Knitting to a pdf document
 descvars %>%
   mutate(
@@ -283,7 +283,7 @@ descvars %>%
   kableExtra::add_footnote("See the next table for the number of valid observations per level.") %>% 
   kableExtra::column_spec(8, image = kableExtra::spec_boxplot(varlists)) %>%
   kableExtra::column_spec(9, image = kableExtra::spec_hist(varlists)) %>%
-  kableExtra::save_kable("tables/03_variances.pdf")
+  kableExtra::save_kable("tables/01_descriptives.pdf")
 
 
 # 4. visualisation of both dimensions ------------------------------------------

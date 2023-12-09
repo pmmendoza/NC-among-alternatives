@@ -12,12 +12,12 @@
 # 0. setup ----------------------------------------------------------------
 # ├ packages ------------------------------------------------------
 pacman::p_load(
-  'officer',
-  'officedown',
-  'kableExtra',
-  'modelsummary',
-  'officer',
-  'flextable'
+  officer,
+  officedown,
+  kableExtra,
+  modelsummary,
+  officer,
+  flextable
 )
 
 # Change the following environment variable to this script's project folder path.
@@ -46,16 +46,16 @@ coef_map <- c(
 
   # Interaction
   ## System
-  "p_negativity:e_ENP" = "Negativity * ENP [P]",
-  "p_incivility:e_ENP" = "Incivility * ENP [P]",
-  "p_resid_neg:e_ENP" = "Negativity (adj) * ENP [P]",
-  "p_resid_unciv:e_ENP" = "Incivility (adj) * ENP [P]",
+  "p_negativity:e_ENP" = "Negativity *\n ENP [P]",
+  "p_incivility:e_ENP" = "Incivility *\n ENP [P]",
+  "p_resid_neg:e_ENP" = "Negativity (adj) *\n ENP [P]",
+  "p_resid_unciv:e_ENP" = "Incivility (adj) *\n ENP [P]",
 
   ## Party
-  "p_negativity:p_combo_wiki_emindist" = "Negativity * Ideol. dist. to closest competitor[P]",
-  "p_incivility:p_combo_wiki_emindist" = "Incivility * Ideol. dist. to closest competitor[P]",
-  "p_resid_neg:p_combo_wiki_emindist" = "Negativity (adj) * Ideol. dist. to closest competitor[P]",
-  "p_resid_unciv:p_combo_wiki_emindist" = "Incivility (adj) * Ideol. dist. to closest competitor[P]",
+  "p_negativity:p_combo_wiki_emindist" = "Negativity *\n Ideol. dist. to closest competitor[P]",
+  "p_incivility:p_combo_wiki_emindist" = "Incivility *\n Ideol. dist. to closest competitor[P]",
+  "p_resid_neg:p_combo_wiki_emindist" = "Negativity (adj) *\n Ideol. dist. to closest competitor[P]",
+  "p_resid_unciv:p_combo_wiki_emindist" = "Incivility (adj) *\n Ideol. dist. to closest competitor[P]",
 
   ## Voter
   "p_negativity:d_ninterpos_perc_biNo better alternatives" = "Negativity *\n no better alternatives [D]",
@@ -81,10 +81,10 @@ coef_map <- c(
   "e_ENP" = "ENP [E]",
 
   # Following the elections
-  "p_negativity:d_ninterpos_perc_bi_num:i_followelections" = "Negativity *\nfollowing the elections *\nno better alternatives [D]",
-  "p_incivility:d_ninterpos_perc_bi_num:i_followelections" = "Incivility *\nfollowing the elections *\nno better alternatives [D]",
-  "p_negativity:i_followelections" = "Negativity * following the elections [I]",
-  "p_incivility:i_followelections" = "Incivility * following the elections [I]",
+  "p_negativity:d_ninterpos_perc_bi_num:i_followelections" = "Negativity *\n following the elections *\n no better alternatives [D]",
+  "p_incivility:d_ninterpos_perc_bi_num:i_followelections" = "Incivility *\n following the elections *\n no better alternatives [D]",
+  "p_negativity:i_followelections" = "Negativity *\n following the elections [I]",
+  "p_incivility:i_followelections" = "Incivility *\n following the elections [I]",
   "d_ninterpos_perc_bi_num:i_followelections" = "following the elections *\nno better alternatives [D]",
   "i_followelections" = "following the elections [I]",
 

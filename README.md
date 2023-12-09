@@ -3,7 +3,8 @@
 This is the official repository for all analyses conducted in: Mendoza,
 P., Nai, A., Bos, L. (2023). The fleeting allure of dark campaigns.
 Backlash from negative and uncivil campaigning in the presence of
-(better) alternatives. *Political Communication* (*forthcoming*). <https://osf.io/raz97/>
+(better) alternatives. *Political Communication* (*forthcoming*).
+<https://osf.io/raz97/>
 
 ## Directory Structure
 

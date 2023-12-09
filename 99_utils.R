@@ -559,6 +559,9 @@ nicelyformatted_table <- function(hlinepos = 10,
     hline(hlinepos1) %>%
     hline(hlinepos2) %>%
     fit_to_width(10) %>%
+    align(i = NULL, j = NULL, align = "center", part = "body") %>% 
+    align(i = 1, j = NULL, align = "center", part = "header") %>% 
+    align(i = NULL, j = 1:2, align = "left", part = "body") %>% 
     flextable::save_as_docx(
       path = output,
       pr_section = prop_section(

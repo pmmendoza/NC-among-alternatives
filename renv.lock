@@ -143,7 +143,7 @@
       "Package": "audio",
       "Version": "0.1-11",
       "Source": "Repository",
-      "Repository": "CRAN",
+      "Repository": "RSPM",
       "Requirements": [
         "R"
       ],

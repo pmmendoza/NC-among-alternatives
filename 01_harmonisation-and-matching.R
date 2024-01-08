@@ -68,7 +68,7 @@ if (!file.exists("data/ZA7581_v2-0-1.dta") | !file.exists("data/ZA7581_cp.csv"))
 ees <- haven::read_dta(glue("data/ZA7581_v2-0-1.dta"))
 
 # load the EES Parties dataset
-parties <- read_csv(glue("data/ZA7581_cp.csv"), local = locale(encoding = "CP1250"), name_repair = "universal")
+parties <- read_csv(glue("data/ZA7581_cp.csv"), locale = locale(encoding = "CP1250"), name_repair = "universal")
 
 # download partyfacts data
 if (!file.exists("data/partyfacts-core-parties.csv")) {

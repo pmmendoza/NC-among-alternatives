@@ -5,7 +5,7 @@
 # Annotations:
 #   [R] for Robustness checks
 #   [SC] for Sample Cuts
-# 
+#   [T] for Tables
 # 
 # 1. setup -----------------------------------------
 ## 1.1 packages and functions ---------------------------------------------
@@ -69,8 +69,38 @@ write_csv(sc_noepees, "data/02_parties unmatched due to EPEES.csv")
 
 
 # [SC] unmatched by EPEES ----------------------------------------------------
-enx <- filter(enx, !is.na(ees_party_id))
+# Only parties in the EPEES_19 for which re-spondents were asked a PTV
+enx1 <- filter(enx, !is.na(ees_party_id))
 # dropping 12 parties
+
+
+# [SC, T] N of experts --------------------------------------------------
+enx1 %>% filter(numresp<3) # =>  we lose Luxembourg entirely
+# Only parties that were coded by at least three experts in EPEES
+enx2 <- filter(enx1, numresp>=3)
+# dropping 7 parties
+
+# [Table 2] First rows.
+scs <- rbind(
+  # original data
+  c("Original EPEES_19", n_distinct(enx$country), n_distinct(enx$epees_id), "", "", ""),
+  # missing link to EES
+  c("Only parties in the EPEES_19 for which respondents were asked a PTV", n_distinct(enx1$cntry), n_distinct(enx1$p_uniqueid_be), "", "", 
+    paste0("dropped parties: ", filter(enx, is.na(ees_party_id)) %>% 
+             mutate(dropname = glue("{partyname} [{cntry_short}]")) %>% 
+             pull(dropname) %>% paste0(collapse = ", ")
+    )),
+  # at least 3 experts
+  c("Only parties that were coded by at least three experts", n_distinct(enx2$cntry), n_distinct(enx2$p_uniqueid_be), "", "", "kicked out Luxembourg ⇒ 7 parties!"),
+  # original EES
+  c("Original EES", n_distinct(ees$countrycode), "", nrow(ees), "", "")
+) %>% 
+  data.frame
+names(scs) <- c("Step", "Countries", "Parties", "Indiv.", "Dyads", "Comment")
+
+# copy filtered data back to enx
+enx <- enx2
+
 
 ## 2.2 party-level --------------------------------------------------------
 ### 2.2.1 party ideology --------------------------------------------------------
@@ -119,9 +149,7 @@ enx %>%
   psych::alpha()
 # Alpha = [0.96-0.98]
 
-# [SC] Luxembourg Pirate Party is dropped
 sc_p_eupos <- enx %>% filter(is.na(p_eupos)) %>% select(cntry_short, ees_party_id, partyname, epees_id_num)
-enx <-  enx %>% filter(!is.na(p_eupos))
 
 
 ### 2.2.2 inter-party ideological distances --------------------------------------------------------
@@ -257,6 +285,8 @@ enx <-
     e_ENP = ENP,
     # Region in europe
     e_region = region,
+    cntry_short = cntry_short_be,
+    p_uniqueid = p_uniqueid_be
   )
 
 
@@ -381,21 +411,7 @@ for (j in 1:9){
 }
 
 
-## 2.5 [SC] N of experts --------------------------------------------------
-# kick parties with less than 3 coders EPEES
-enx$epees_id[enx$p_numresp<3]
-# =>  we lose Luxembourg entirely
-# 6 rows are kicked out
-enx <-
-  enx %>% 
-  filter(p_numresp>=3) %>% 
-  mutate(
-    cntry_short = cntry_short_be,
-    p_uniqueid = p_uniqueid_be
-    )
-
-
-## 2.6 [SC] stacking data --------------------------------------------------------
+## 2.6 stacking data --------------------------------------------------------
 # ALl control variables
 cntrls <- c("i_gender",
             "i_yrbrn", 
@@ -423,7 +439,7 @@ cntrls <- c("i_gender",
             )
 
 # Connecting EPEES to EES
-temp <-
+temp1 <-
   ees %>% 
   select(
     i_unique, cntry_short,
@@ -441,21 +457,42 @@ temp <-
     p_uniqueid_be = str_c(cntry_short, "_", ees_partycode),
     ) %>% 
   # Remove DV NA rows
-  filter(ptv <= 10)  %>%
-  
+  filter(ptv <= 10)
+
+
+# [SC, T] stacked EES as dyads with valid PTVs ---------------------------------------
+temp <- temp1 %>%
   # Remove parties not covered in EPEES
   filter(p_uniqueid_be %in% enx$p_uniqueid_be) %>% 
-  
   # Connect to EPEES
   inner_join(enx)
 
-temp %>% 
-    summarise(
-      countries = n_distinct(cntry_short_be),
-      parties = n_distinct(p_uniqueid_be),
-      respondents = n_distinct(i_unique),
-      dyads = n()
-    ) %>% print()
+scs <- temp1 %>% 
+  summarise(
+    Step = "EES as dyads with valid PTVs",
+    Countries = n_distinct(cntry_short),
+    Parties = n_distinct(p_uniqueid_be),
+    Indiv. = n_distinct(i_unique),
+    Dyads = n(),
+    Comment = "Belgium is split into two regions"
+  ) %>% 
+  mutate_all(as.character) %>% 
+  bind_rows(scs,.)
+
+scs <- 
+  temp %>% 
+  summarise(
+      Step = "reduced to par-ties covered in EPEES_19",
+      Countries = n_distinct(cntry_short_be),
+      Parties = n_distinct(p_uniqueid_be),
+      Indiv. = n_distinct(i_unique),
+      Dyads = n(),
+      Comment = ""
+    ) %>% 
+  mutate_all(as.character) %>% 
+  bind_rows(scs,.)
+
+write_csv(scs, "tables/02_samplecuts.csv")
 
 
 ## 2.7 dyadic measures --------

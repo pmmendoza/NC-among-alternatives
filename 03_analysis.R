@@ -154,22 +154,28 @@ tempdf_scale <-
 
 # [Table 2] This table is manually created.
 scs <- list(
-  "orig" = tempdf_scale1,
-  "sc1" = sc1,
-  "sc2" = sc2,
-  "analysis" = tempdf_scale
+  # "orig" = tempdf_scale1,
+  "Drop outliers" = sc1,
+  "Drop rows with missing values" = sc2,
+  "Drop respond-ents with less than two PTVs" = tempdf_scale
 ) %>%
   map(~ {
     .x %>% summarise(
-      countries = n_distinct(cntry_short),
-      parties = n_distinct(p_uniqueid),
-      respondents = n_distinct(i_unique),
-      dyads = n()
+      Countries = n_distinct(cntry_short),
+      Parties = n_distinct(p_uniqueid),
+      Indiv. = n_distinct(i_unique),
+      Dyads = n()
     )
   }) %>%
-  enframe() %>%
+  enframe(name = "Step") %>%
   unnest_wider(value)
-write_csv(scs, file = "tables/02_samplecuts.csv")
+
+# get the first couple of rows created in the data wrangling script
+scs1 <- read_csv("tables/02_samplecuts.csv")
+
+# combine them with the final sample cuts and write them back to the disc
+full_join(scs1, scs) %>% 
+  write_csv(file = "tables/02_samplecuts.csv")
 
 
 # ├ party-level df -------------------------------------------------------------

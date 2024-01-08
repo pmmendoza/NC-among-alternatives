@@ -1,5 +1,10 @@
-name,countries,parties,respondents,dyads
-orig,28,175,25665,161281
-sc1,28,175,25665,161281
-sc2,28,175,19214,116333
-analysis,28,175,18790,115661
+Step,Countries,Parties,Indiv.,Dyads,Comment
+Original EPEES_19,28,191,NA,NA,NA
+Only parties in the EPEES_19 for which respondents were asked a PTV,28,182,NA,NA,"dropped parties: STAN [CZ], Folkebevægelsen mod EU (N) [DK], Alternativet (Å) [DK], Junts per Catalunya (JxC) [ES], Partido Nacionalista Vasco (EAJ-PNV) [ES], Christian Democrats (KD) [FI], Party for the Animals (PvdD) [NL], Liberty (KORWiN) [PL], Democratic Unionist Party (DUP) [UK], Change UK - The Independent Group [UK], Plaid Cymru (PC) [UK], Sinn Féin [UK]"
+Only parties that were coded by at least three experts,27,175,NA,NA,kicked out Luxembourg ⇒ 7 parties!
+Original EES,28,NA,26538,NA,NA
+EES as dyads with valid PTVs,29,208,26169,186653,Belgium is split into two regions
+reduced to par-ties covered in EPEES_19,28,175,25665,161281,NA
+Drop outliers,28,175,25665,161281,NA
+Drop rows with missing values,28,175,19214,116333,NA
+Drop respond-ents with less than two PTVs,28,175,18790,115661,NA
